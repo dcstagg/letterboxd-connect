@@ -1,0 +1,36 @@
+/**
+* Letterboxd to Wordpress Settings
+* Admin Settings Screen
+**/
+
+/* A little table styling */
+#letterboxd-settings-form .form-table { margin: 2rem 0; }
+#letterboxd-settings-form .form-table tr { display: flex; align-items: center; margin: 2rem 0; }
+#letterboxd-settings-form .form-table tr:first-of-type { margin-top: 0; }
+#letterboxd-settings-form .form-table th,
+#letterboxd-settings-form .form-table td { display: inline-flex; margin: 0; padding: 0; line-height: 1; }
+#letterboxd-settings-form .form-table span.description { font-size: 0.875rem; }
+#letterboxd-settings-form .form-table .letterboxd-status-wrap p.time-wrap { margin: 0; }
+.import-after-save { margin: 1.5rem 0; padding: 1rem; background: #f8f8f8; border: 1px solid #ddd; border-radius: 0.25rem; }
+
+/* Input fields */
+#letterboxd-settings-form .form-table input { margin-right: 0.5rem; }
+input[type="text"] { width: 10rem; }
+input[type="date"] { width: 8rem; }
+input[type="text"]#tmdb_api_key { width: 20rem; }
+
+#advanced-settings .form-table td { gap: 0.5rem; }
+.tmdb-bulk-update-section a.button { display: inline-flex; align-items: center; gap: 0.25rem; }
+.tmdb-bulk-update-section a.button span.spinner { margin: 0; }
+
+/* Messages */
+#username-validation-message,
+#settings-update-message { display: none; margin: 0.5rem 0; padding: 0.5rem 1rem; }
+
+.notice-success { color: #46b450; }
+.notice-error { color: #dc3232; }
+
+@media screen and (max-width: 782px) {
+	.form-table th { width: 100%; display: block; }	
+	.form-table td { padding-left: 0; }
+}

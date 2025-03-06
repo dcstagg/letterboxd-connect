@@ -1,0 +1,85 @@
+:root {
+    --line-height: 1.2;
+    --white: #fff;
+    --movie-shadow-color: rgba(0, 0, 0, 0.1);
+    --movie-shadow-hover: rgba(0, 0, 0, 0.15);
+    --shadow-small: 0 0.125rem 0.25rem var(--movie-shadow-color);
+    --shadow-large: 0 0.25rem 0.5rem var(--movie-shadow-hover);
+    --light-grey: #f5f5f5;
+    --text-muted: #666;
+    --font-size-sm: 0.75rem;
+    --opacity: 0.7;
+    --grid-gap: 0.5rem;
+    --grid-gap-l: 1.5rem;
+    --common-gap: 1rem;
+    --card-padding: 1rem;
+    --list-padding: 0.75rem 1rem;
+    --common-padding: 0.25rem 0.5rem;
+    --border-radius: 0.5rem;
+    --transform-distance: -0.25rem;
+    --thumbnail-width: 8rem;
+    --poster-aspect-ratio: 2/3;
+    --imdb-color: #f5c518;
+    --rt-color: #fa320a;
+}
+
+.movie-item { background: var(--white); border-radius: var(--border-radius); overflow: hidden; box-shadow: var(--shadow-small); transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+.movie-item:hover { transform: translateY(var(--transform-distance)); box-shadow: var(--shadow-large); }
+.movie-item .movie-poster { position: relative; aspect-ratio: var(--poster-aspect-ratio); width: 100%; overflow: hidden; }
+.movie-item .movie-poster img { object-fit: cover; position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.movie-item .movie-details { padding: var(--card-padding); gap: var(--grid-gap); }
+.movie-item .movie-details h3.movie-title { font-size: 1rem; font-weight: 700; margin: 0; overflow: hidden; text-overflow: ellipsis; line-height: var(--line-height); }
+.movie-item .movie-details p { line-height: var(--line-height); font-size: var(--font-size-sm); margin: 0; }
+.movie-item .movie-details .movie-meta { font-size: 0.875rem; margin-bottom: 1.5rem; }
+.movie-item .movie-details .movie-meta .movie-director:before { content: 'Dir: '; opacity: var(--opacity); }
+.movie-item .movie-details .movie-meta .watch-date:before { content: 'Watched: '; opacity: var(--opacity); }
+.movie-item .movie-details .movie-links { margin-top: auto; }
+.movie-item .movie-details .movie-links p.watch-link a { text-decoration: none; }
+.movie-item .movie-details .movie-links p.watch-link a:hover { text-decoration: underline; }
+.movie-item .movie-details .movie-links .external-links-list { line-height: 1; }
+.movie-item .movie-details .movie-links .external-links-list  .external-link { display: inline-block; padding: var(--common-padding); border-radius: var(--border-radius); font-size: var(--font-size-sm); font-weight: 700; text-decoration: none; color: var(--white); line-height: 1; transition: opacity 0.2s ease-in-out; }
+.movie-item .movie-details .movie-links .external-links-list .external-link:hover { opacity: var(--opacity); }
+.movie-item .movie-details .movie-links .external-links-list .imdb-link { background-color: var(--imdb-color); color: #000; }
+.movie-item .movie-details .movie-links .external-links-list .rt-link { background-color: var(--rt-color); }
+
+/* List Specific */
+.movie-list-item { display: flex; }
+.movie-list-item .movie-poster { flex: 0 0 auto; width: var(--thumbnail-width); }
+.movie-list-item .movie-details { flex: 1; padding: var(--list-padding); display: flex; flex-direction: column; }
+
+/* Card Specific */
+.movie-card { display: flex; flex-direction: column; will-change: transform; }
+.movie-card .movie-details { display: flex; flex-direction: column; flex-grow: 1; }
+
+
+
+.wp-block-letterboxd-wordpress-movie-grid { margin: var(--grid-gap) 0; }
+.wp-block-letterboxd-wordpress-movie-grid .movie-grid { display: grid; gap: var(--grid-gap); grid-template-columns: repeat(2, 1fr); }
+.wp-block-letterboxd-wordpress-movie-grid[data-columns="1"] .movie-grid { grid-template-columns: repeat(1, 1fr); gap: var(--grid-gap-l); }
+.wp-block-letterboxd-wordpress-movie-grid[data-display-mode="list"] .movie-list, .editor-styles-wrapper .editor-preview[data-display-mode="list"] .movie-list, .editor-styles-wrapper .movie-grid-preview[data-display-mode="list"] .movie-list { display: flex; flex-direction: column; gap: var(--common-gap); }
+.movie-grid-pagination { margin-top: 2rem; width: 100%; text-align: center; }
+.movie-grid-pagination .page-numbers { display: flex; flex-wrap: wrap; justify-content: center; list-style: none; padding: 0; margin: 0; gap: 0.25rem; }
+.movie-grid-pagination .page-numbers li { margin: 0; padding: 0; }
+.movie-grid-pagination .page-numbers a, .movie-grid-pagination .page-numbers span { display: inline-flex; align-items: center; justify-content: center; padding: 0.5rem 0.75rem; text-align: center; text-decoration: none; border-radius: var(--border-radius); background-color: var(--white); box-shadow: var(--shadow-small); transition: all 0.2s ease; font-size: 0.825rem; }
+.movie-grid-pagination .page-numbers a:hover, .movie-grid-pagination .page-numbers a:focus { background-color: var(--light-grey); box-shadow: var(--shadow-large); transform: translateY(-2px); }
+.movie-grid-pagination .page-numbers .current { background-color: var(--light-grey); }
+.movie-grid-pagination .page-numbers .prev, .movie-grid-pagination .page-numbers .next { padding: 0.5rem 0.75rem; }
+.editor-preview .pagination-note { margin-top: 2rem; font-size: 0.825rem; padding: 0.5rem; background-color: var(--light-grey); border-radius: var(--border-radius); text-align: center; }
+
+
+
+@media (min-width: 768px) { 
+  :root { --thumbnail-width: 12rem; }
+  .wp-block-letterboxd-wordpress-movie-grid .movie-grid { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+  .wp-block-letterboxd-wordpress-movie-grid[data-columns="2"] .movie-grid { grid-template-columns: repeat(2, 1fr); gap: var(--grid-gap-l); }
+  .wp-block-letterboxd-wordpress-movie-grid[data-columns="3"] .movie-grid { grid-template-columns: repeat(3, 1fr); }
+  .wp-block-letterboxd-wordpress-movie-grid[data-columns="4"] .movie-grid { grid-template-columns: repeat(4, 1fr); }
+  .wp-block-letterboxd-wordpress-movie-grid[data-columns="5"] .movie-grid { grid-template-columns: repeat(5, 1fr); }
+  .wp-block-letterboxd-wordpress-movie-grid[data-columns="6"] .movie-grid { grid-template-columns: repeat(6, 1fr); }
+  .movie-item .movie-meta { display: flex; flex-direction: column; gap: var(--grid-gap); }
+  .external-links-list { margin-top: 0; }
+}
+
+
+
+@supports not (aspect-ratio: 2/3) { .movie-item .movie-poster { position: relative; width: 100%; padding-top: 150%; width: var(--thumbnail-width); height: calc(var(--thumbnail-width) * 1.5); } }
