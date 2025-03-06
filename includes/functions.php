@@ -2,7 +2,7 @@
 /**
  * Helper functions for the Letterboxd to WordPress plugin
  *
- * @package LetterboxdToWordPress
+ * @package letterboxd-wordpress
  */
 
 // Prevent direct access

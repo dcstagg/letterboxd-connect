@@ -2,7 +2,7 @@
 /**
  * Handles interactions with The Movie Database API with improved efficiency
  *
- * @package LetterboxdToWordPress
+ * @package letterboxd-wordpress
  * @since 1.1.0
  */
 

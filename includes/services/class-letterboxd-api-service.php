@@ -2,7 +2,7 @@
 /**
  * Letterboxd API Service implementation
  *
- * @package LetterboxdToWordPress
+ * @package letterboxd-wordpress
  * @since 1.1.0
  */
 class LetterboxdApiService implements LetterboxdApiServiceInterface {

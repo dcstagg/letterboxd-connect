@@ -2,7 +2,7 @@
 /**
  * Handles the import of movies from Letterboxd
  *
- * @package LetterboxdToWordPress
+ * @package letterboxd-wordpress
  * @since 1.0.0
  */
 

@@ -2,7 +2,7 @@
 /**
  * Class for handling automated imports from Letterboxd
  *
- * @package LetterboxdToWordPress
+ * @package letterboxd-wordpress
  * @since 1.0.0
  */
 

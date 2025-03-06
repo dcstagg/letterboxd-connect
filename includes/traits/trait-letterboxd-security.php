@@ -2,7 +2,7 @@
 /**
  * Security measures for Letterboxd plugin
  *
- * @package LetterboxdToWordPress
+ * @package letterboxd-wordpress
  */
 
 // Prevent direct access

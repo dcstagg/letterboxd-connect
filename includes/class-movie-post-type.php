@@ -2,7 +2,7 @@
 /**
  * Handles the Movie custom post type registration and management
  *
- * @package LetterboxdToWordPress
+ * @package letterboxd-wordpress
  * @since 1.0.0
  */
 

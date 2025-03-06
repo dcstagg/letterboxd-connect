@@ -6,8 +6,8 @@
  * Version: 1.0
  * Author: David Stagg
  * Author URI: https://davidstagg.com
- * License: GPL v2 or later
- * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * License: GPL v3 or later
+ * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  */
 
 // Prevent direct access

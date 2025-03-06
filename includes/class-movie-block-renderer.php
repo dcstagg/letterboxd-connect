@@ -2,7 +2,7 @@
 /**
  * Class to handle Movie Block registration and integration
  *
- * @package LetterboxdToWordPress
+ * @package letterboxd-wordpress
  * @since 1.0.0
  */
 

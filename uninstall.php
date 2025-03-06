@@ -5,7 +5,7 @@
  * This file will be called automatically when the plugin is uninstalled through WordPress.
  * It cleans up all plugin-related data from the database.
  *
- * @package LetterboxdToWordPress
+ * @package letterboxd-wordpress
  */
 
 // Exit if not called by WordPress during uninstall
