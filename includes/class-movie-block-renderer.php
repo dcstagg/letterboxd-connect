@@ -261,36 +261,24 @@ class Letterboxd_Movie_Block_Renderer {
         // Determine context to differentiate editor preview from front-end
         $is_rest = defined("REST_REQUEST") && REST_REQUEST;
         $context = $is_rest ? "edit" : "front";
-
+    
         // Get current page if we're showing all with pagination
         $paged = 1;
         if ($attributes["showAll"] ?? false) {
             $paged = get_query_var("paged") ? get_query_var("paged") : 1;
         }
-
-        $cache_key =
-            "block_" .
-            md5(serialize($attributes)) .
-            "_" .
-            $context .
-            "_page_" .
-            $paged;
+    
+        $cache_key = "block_" . md5(serialize($attributes)) . "_" . $context . "_page_" . $paged;
         $output = wp_cache_get($cache_key, self::CACHE_GROUP);
-
+    
         if ($output === false) {
             $query = $this->get_movies_query($attributes, $context, $paged);
-
+    
             // Get attributes with defaults
-            $columns = isset($attributes["columns"])
-                ? intval($attributes["columns"])
-                : 3;
-            $display_mode = isset($attributes["displayMode"])
-                ? sanitize_text_field($attributes["displayMode"])
-                : "cards";
-            $show_all = isset($attributes["showAll"])
-                ? (bool) $attributes["showAll"]
-                : false;
-
+            $columns = isset($attributes["columns"]) ? intval($attributes["columns"]) : 3;
+            $display_mode = isset($attributes["displayMode"]) ? sanitize_text_field($attributes["displayMode"]) : "cards";
+            $show_all = isset($attributes["showAll"]) ? (bool) $attributes["showAll"] : false;
+    
             // Add display options to render attributes
             $render_options = [
                 "layout" => $display_mode === "list" ? "list" : "grid",
@@ -301,55 +289,39 @@ class Letterboxd_Movie_Block_Renderer {
                 "showExternalLinks" => $attributes["showExternalLinks"] ?? true,
                 "showPagination" => $show_all,
             ];
-
+    
             // Use the unified render_movie_collection method with display options
             $grid = $this->render_movie_collection($query, $render_options);
-
+    
+            // Handle pagination display based on context
             $pagination = "";
-            $pagination_note = "";
-            // Only show pagination note if it's a REST request AND showAll is true
-            if ($is_rest && $show_all) {
-                $pagination_note =
-                    '<div class="pagination-note">' .
-                    __(
-                        "Pagination will appear on the front end",
-                        "letterboxd-wordpress"
-                    ) .
-                    "</div>";
-            } elseif ($show_all && !$is_rest) {
-                $pagination = $this->render_pagination($query);
+            if ($show_all) {
+                if ($is_rest) {
+                    $pagination = '<div class="pagination-note">' . 
+                        __("Pagination will appear on the front end", "letterboxd-wordpress") . 
+                        "</div>";
+                } else {
+                    $pagination = $this->render_pagination($query);
+                }
             }
-
-            if ($context === "edit") {
-                // In the editor context
-                $output = sprintf(
-                    '<div class="editor-preview" data-columns="%d" data-display-mode="%s">%s%s</div>',
-                    $columns,
-                    esc_attr($display_mode),
-                    $grid,
-                    $pagination_note
-                );
-            } else {
-                // Front-end context
-                $output = sprintf(
-                    '<div class="wp-block-letterboxd-wordpress-movie-grid" data-columns="%d" data-display-mode="%s">%s%s</div>',
-                    $columns,
-                    esc_attr($display_mode),
-                    $grid,
-                    $pagination
-                );
-            }
-
+    
+            // Create container with appropriate class based on context
+            $container_class = $context === "edit" ? "editor-preview" : "wp-block-letterboxd-wordpress-movie-grid";
+            
+            $output = sprintf(
+                '<div class="%s" data-columns="%d" data-display-mode="%s">%s%s</div>',
+                esc_attr($container_class),
+                $columns,
+                esc_attr($display_mode),
+                $grid,
+                $pagination
+            );
+    
             // Cache editor content for less time than front-end content
             $cache_duration = $context === "edit" ? 300 : self::CACHE_DURATION;
-            wp_cache_set(
-                $cache_key,
-                $output,
-                self::CACHE_GROUP,
-                $cache_duration
-            );
+            wp_cache_set($cache_key, $output, self::CACHE_GROUP, $cache_duration);
         }
-
+    
         return $output;
     }
 
@@ -622,6 +594,68 @@ class Letterboxd_Movie_Block_Renderer {
             esc_html(get_the_title($post_id))
         );
     }
+    
+    /**
+     * Generate HTML for all movie links (streaming, IMDb, Rotten Tomatoes)
+     *
+     * @param array $display_options Display options including which links to show
+     * @param array $meta_data Movie metadata including IDs and URLs
+     * @param int $post_id Post ID
+     * @param bool $is_list_view Whether being displayed in list view
+     * @return string HTML for all links wrapped in div
+     */
+    private function get_movie_links(
+        array $display_options,
+        array $meta_data,
+        int $post_id,
+        bool $is_list_view = false
+    ): string {
+        $links = [];
+        $title = get_the_title($post_id);
+        
+        // Add streaming link if available and option is enabled
+        if (
+            $display_options["showStreamingLink"] &&
+            !empty($meta_data["streaming_link"])
+        ) {
+            $links[] = sprintf(
+                '<a href="%s" target="_blank" rel="noopener noreferrer" class="external-link watch-link">Watch</a>',
+                esc_url($meta_data["streaming_link"])
+            );
+        }
+        
+        // Add external links if option is enabled
+        if ($display_options["showExternalLinks"]) {
+            // Create IMDb link if ID exists
+            if (!empty($meta_data["imdb_id"])) {
+                $imdb_url = "https://www.imdb.com/title/{$meta_data["imdb_id"]}/";
+                $links[] = sprintf(
+                    '<a href="%s" target="_blank" class="external-link imdb-link" title="View on IMDb">IMDb</a>',
+                    esc_url($imdb_url)
+                );
+            }
+            
+            // Create Rotten Tomatoes link if we have a title and year
+            if (!empty($title) && !empty($meta_data["year"])) {
+                $rt_search_query = urlencode(trim($title) . " " . trim($meta_data["year"]));
+                $rt_url = "https://www.rottentomatoes.com/search?search={$rt_search_query}";
+                $links[] = sprintf(
+                    '<a href="%s" target="_blank" class="external-link rt-link" title="Search on Rotten Tomatoes">RT</a>',
+                    esc_url($rt_url)
+                );
+            }
+        }
+        
+        // Return empty string if no links, otherwise wrap links in div
+        if (empty($links)) {
+            return "";
+        }
+        
+        return sprintf(
+            '<div class="movie-links">%s</div>',
+            implode(' ', $links)
+        );
+    }
 
     /**
      * Render an individual movie item (card or list item)
@@ -685,85 +719,39 @@ class Letterboxd_Movie_Block_Renderer {
                 esc_html($meta_data["director"])
             );
         }
-
-        // Format streaming link if available and option is enabled
-        $streaming_link_html = "";
-        if (
-            $display_options["showStreamingLink"] &&
-            !empty($meta_data["streaming_link"])
-        ) {
-            $streaming_link_html = sprintf(
-                '<p class="watch-link"><a href="%s" target="_blank" rel="noopener noreferrer">Where to Watch &raquo;</a></p>',
-                esc_url($meta_data["streaming_link"])
-            );
-        }
-
-        // Get external links HTML if option is enabled
-        $external_links_html = "";
-        if ($display_options["showExternalLinks"]) {
-            $external_links_html = $this->get_external_links_html(
-                $post_id,
-                $meta_data["imdb_id"],
-                $meta_data["year"]
-            );
-        }
-
-        // Check if we have either streaming link or external links to show
-        $links_wrapper = "";
-        if (!empty($streaming_link_html) || !empty($external_links_html)) {
-            $links_wrapper = sprintf(
-                '<div class="movie-links">%s%s</div>',
-                $streaming_link_html,
-                $external_links_html
-            );
-        }
-
-        // Render based on layout type
-        if ($layout === "grid") {
-            // Grid card layout
-            printf(
-                '<div class="movie-card movie-item">
+        
+        // Get all movie links using the new combined function
+        $movie_links = $this->get_movie_links(
+            $display_options,
+            $meta_data,
+            $post_id
+        );
+        
+        // Set the appropriate CSS class based on layout
+        $layout_class = ($layout === "grid") ? "movie-card" : "movie-list-item";
+        
+        // Render using a single template with dynamic class
+        printf(
+            '<div class="%s movie-item">
+                %s
+                <div class="movie-details">
                     %s
-                    <div class="movie-details">
+                    <div class="movie-meta">
                         %s
-                        <div class="movie-meta">
-                            %s
-                            %s
-                            %s
-                        </div>
+                        %s
                         %s
                     </div>
-                </div>',
-                $this->get_movie_poster($post_id, "movie-poster"),
-                $this->get_movie_title($post_id),
-                $date_watched_html,
-                $director_html,
-                $rating_html,
-                $links_wrapper
-            );
-        } else {
-            // List item layout
-            printf(
-                '<div class="movie-list-item movie-item">
                     %s
-                    <div class="movie-details">
-                        %s
-                        <div class="movie-meta">
-                            %s
-                            %s
-                            %s
-                        </div>
-                        %s
-                    </div>
-                </div>',
-                $this->get_movie_poster($post_id, "movie-poster"),
-                $this->get_movie_title($post_id),
-                $date_watched_html,
-                $director_html,
-                $rating_html,
-                $links_wrapper
-            );
-        }
+                </div>
+            </div>',
+            $layout_class,
+            $this->get_movie_poster($post_id, "movie-poster"),
+            $this->get_movie_title($post_id),
+            $date_watched_html,
+            $director_html,
+            $rating_html,
+            $movie_links
+        );
     }
 
     /**
@@ -795,140 +783,6 @@ class Letterboxd_Movie_Block_Renderer {
             return $terms[0]->name;
         }
         return "";
-    }
-
-    /**
-     * Generate HTML for external links (IMDb and Rotten Tomatoes)
-     */
-    private function get_external_links_html(
-        int $post_id,
-        string $imdb_id = "",
-        string $year = "",
-        bool $is_list_view = false
-    ): string {
-        if (empty($imdb_id) && empty($year)) {
-            return "";
-        }
-
-        $links = [];
-        $title = get_the_title($post_id);
-
-        // Create IMDb link if ID exists
-        if (!empty($imdb_id)) {
-            $imdb_url = "https://www.imdb.com/title/{$imdb_id}/";
-            $links[] = sprintf(
-                '<a href="%s" target="_blank" class="external-link imdb-link" title="View on IMDb">IMDb</a>',
-                esc_url($imdb_url)
-            );
-        }
-
-        // Create Rotten Tomatoes link if we have a title and year
-        if (!empty($title) && !empty($year)) {
-            $rt_search_query = urlencode(trim($title) . " " . trim($year));
-            $rt_url = "https://www.rottentomatoes.com/search?search={$rt_search_query}";
-            $links[] = sprintf(
-                '<a href="%s" target="_blank" class="external-link rt-link" title="Search on Rotten Tomatoes">RT</a>',
-                esc_url($rt_url)
-            );
-        }
-        if (empty($links)) {
-            return "";
-        }
-        return sprintf(
-            '<div class="external-links-list">%s</div>',
-            implode(" ", $links)
-        );
-    }
-
-    /**
-     * Get streaming providers HTML for a movie
-     *
-     * @param int $post_id Movie post ID
-     * @return string HTML for streaming providers
-     */
-    private function get_streaming_providers_html(int $post_id): string {
-        if (!class_exists("Letterboxd_TMDB_Handler")) {
-            return "";
-        }
-
-        $providers_json = get_post_meta($post_id, "streaming_providers", true);
-
-        if (empty($providers_json)) {
-            return "";
-        }
-
-        $providers = json_decode($providers_json, true);
-        if (empty($providers) || json_last_error() !== JSON_ERROR_NONE) {
-            return "";
-        }
-
-        // Get movie information needed for direct links
-        $tmdb_id = get_post_meta($post_id, "tmdb_id", true);
-        if (empty($tmdb_id)) {
-            $tmdb_id = get_post_meta($post_id, "tmdb_movie_id", true);
-        }
-        $movie_title = get_the_title($post_id);
-        $imdb_id = get_post_meta($post_id, "imdb_id", true);
-
-        // Initialize TMDB handler for direct links
-        $tmdb_handler = new Letterboxd_TMDB_Handler();
-
-        $output = '<div class="movie-streaming">';
-
-        // Category labels for display
-        $category_labels = [
-            "flatrate" => __("Stream", "letterboxd-wordpress"),
-            "rent" => __("Rent", "letterboxd-wordpress"),
-            "buy" => __("Buy", "letterboxd-wordpress"),
-            "free" => __("Free", "letterboxd-wordpress"),
-            "ads" => __("Free with Ads", "letterboxd-wordpress"),
-        ];
-
-        // Loop through provider categories
-        // for now, only show stream, free, or ads
-        foreach (
-            ["flatrate", "free", "ads" /*, 'rent', 'buy' */]
-            as $category
-        ) {
-            if (!empty($providers[$category])) {
-                $output .= sprintf(
-                    '<div class="streaming-category %s">
-                        <h4 class="category-title">%s</h4>
-                        <div class="providers">',
-                    esc_attr("category-" . $category),
-                    esc_html($category_labels[$category])
-                );
-
-                // Loop through providers in this category
-                foreach ($providers[$category] as $provider) {
-                    //Uncomment to show logos instead of names
-                    //Logos are ugly, so I'm leaving them out for now
-                    //
-                    // if (!empty($provider['logo_path'])) {
-                    //     // Create a logo item
-                    //     $output .= sprintf(
-                    //         '<div class="provider-logo" title="%s">
-                    //             <img src="%s" alt="%s" width="50" height="50">
-                    //         </div>',
-                    //         sprintf(esc_attr__('Available on %s', 'letterboxd-wordpress'), esc_attr($provider['provider_name'])),
-                    //         esc_url($provider['logo_path']),
-                    //         esc_attr($provider['provider_name'])
-                    //     );
-                    // } else {
-                    $output .= sprintf(
-                        '<div class="provider-name">%s</div>',
-                        esc_html($provider["provider_name"])
-                    );
-                    // }closing 'if' for logos
-                }
-
-                $output .= "</div></div>";
-            }
-        }
-
-        $output .= "</div>";
-
-        return $output;
     }
 
     /**
