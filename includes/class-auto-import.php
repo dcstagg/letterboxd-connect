@@ -197,15 +197,59 @@ class Letterboxd_Auto_Import {
         );
 
         $this->register_settings_fields();
-
+        
+        function letterboxd_sanitize_options($input) {
+            $sanitized = [];
+            
+            // Basic array structure validation
+            if (!is_array($input)) {
+                return [];
+            }
+            
+            // Sanitize enabled setting (boolean)
+            if (isset($input['enabled'])) {
+                $sanitized['enabled'] = (bool) $input['enabled'];
+            }
+            
+            // Sanitize frequency (string)
+            if (isset($input['frequency'])) {
+                $sanitized['frequency'] = sanitize_text_field($input['frequency']);
+            }
+            
+            // Sanitize email notification (boolean)
+            if (isset($input['email_notification'])) {
+                $sanitized['email_notification'] = (bool) $input['email_notification'];
+            }
+            
+            // Sanitize start date (string)
+            if (isset($input['start_date'])) {
+                $sanitized['start_date'] = sanitize_text_field($input['start_date']);
+            }
+            
+            // Sanitize username (string)
+            if (isset($input['username'])) {
+                $sanitized['username'] = sanitize_text_field($input['username']);
+            }
+            
+            // Sanitize TMDB API key (string)
+            if (isset($input['tmdb_api_key'])) {
+                $sanitized['tmdb_api_key'] = sanitize_text_field($input['tmdb_api_key']);
+            }
+            
+            return $sanitized;
+        }
+        
         // Register settings
+        add_filter('sanitize_option_letterboxd_auto_import_options', 'letterboxd_sanitize_options');
+        
+        // And modify your register_setting:
         register_setting(
-            "letterboxd_wordpress_options", // Same settings group as main settings
-            "letterboxd_auto_import_options", // Separate option name
+            "letterboxd_wordpress_options",
+            "letterboxd_auto_import_options",
             [
-                "type" => "array",
-                "sanitize_callback" => [$this, "sanitize_options"],
-                "show_in_rest" => false
+                "type" => "object",
+                "show_in_rest" => false,
+                "default" => []
             ]
         );
     }

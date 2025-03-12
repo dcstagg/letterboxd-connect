@@ -10,7 +10,7 @@
 
 Import your Letterboxd film diary into WordPress as custom movie posts with metadata, posters, and director information.
 
-== Description ==
+## Description
 
 The Letterboxd Connect Plugin bridges the gap between your Letterboxd film log and your WordPress site. Letterbox does not offer an API, so this plugin uses the RSS feed of your username to automatically imports your watched films. L2WP creates custom movie posts with optional metadata including ratings, watch dates, posters, and more.
 
