@@ -246,11 +246,11 @@ class Letterboxd_Auto_Import {
         register_setting(
             "letterboxd_wordpress_options",
             "letterboxd_auto_import_options",
-            [
+            array(
                 "type" => "object",
                 "show_in_rest" => false,
-                "default" => []
-            ]
+                "default" => array()
+            )
         );
     }
 
