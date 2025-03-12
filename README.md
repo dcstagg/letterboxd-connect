@@ -1,12 +1,12 @@
 # Letterboxd Connect
-Contributors: dcstagg
-Tags: letterboxd, movies, films, import, tmdb
-Requires at least: 5.0
-Tested up to: 6.7.2
-Stable tag: 1.0
-Requires PHP: 7.4
-License: GPLv3 or later
-License URI: http://www.gnu.org/licenses/gpl-3.0.html
+- Contributors: dcstagg
+- Tags: letterboxd, movies, films, import, tmdb
+- Requires at least: 5.0
+- Tested up to: 6.7.2
+- Stable tag: 1.0
+- Requires PHP: 7.4
+- License: GPLv3 or later
+- License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
 Import your Letterboxd film diary into WordPress as custom movie posts with metadata, posters, and director information.
 
@@ -14,7 +14,7 @@ Import your Letterboxd film diary into WordPress as custom movie posts with meta
 
 The Letterboxd Connect Plugin bridges the gap between your Letterboxd film log and your WordPress site. Letterbox does not offer an API, so this plugin uses the RSS feed of your username to automatically imports your watched films. L2WP creates custom movie posts with optional metadata including ratings, watch dates, posters, and more.
 
-### Key Features
+## Key Features
 
 - **Automatic Film Import**: Import your Letterboxd diary entries via RSS feed
 - **Custom Movie Post Type**: Films are stored as a dedicated movie post type with custom fields
@@ -23,14 +23,14 @@ The Letterboxd Connect Plugin bridges the gap between your Letterboxd film log a
 - **Gutenberg Block**: Display your films in grid or list view with customizable settings
 - **Year Taxonomy**: Films are automatically categorized by release year
 
-== Installation ==
+## Installation
 
 1. Download the plugin zip file
 2. Navigate to your WordPress admin area and go to Plugins > Add New
 3. Click "Upload Plugin" and select the downloaded zip file
 4. Activate the plugin through the 'Plugins' menu
 
-== Configuration ==
+## Configuration
 
 ### Basic Setup
 
@@ -48,7 +48,7 @@ For enhanced film data including posters, directors, and streaming information:
 3. Enter your TMDB API key in the plugin settings
 4. Test the connection to verify it's working
 
-== Usage ==
+## Usage
 
 ### Manual Import
 
@@ -72,21 +72,21 @@ Use the custom Gutenberg block to showcase your movies:
 3. Choose between card view (with posters) or list view
 4. Publish your page or post
 
-== Frequently Asked Questions ==
+## Frequently Asked Questions
 
-= How many films can I import? =
+- **How many films can I import?**
 The plugin can handle your entire Letterboxd diary. Imports are batched, so limitations are based on your server resources and WordPress configuration.
 
-= Do I need a TMDB API key? =
+- **Do I need a TMDB API key?**
 No, but it's highly recommended. Without it, you'll miss additional metadata like posters and director information.
 
-= How often should I schedule imports? =
+- **How often should I schedule imports?**
 This depends on how frequently you log films on Letterboxd. Daily imports work well for most users.
 
-= Can I import films from a specific date? =
+- **Can I import films from a specific date?**
 Yes, you can set a start date in the plugin settings to limit which films are imported.
 
-== Troubleshooting ==
+## Troubleshooting
 
 **Import Issues**
 - Verify your Letterboxd username is correct
@@ -98,21 +98,21 @@ Yes, you can set a start date in the plugin settings to limit which films are im
 - Check that your server allows connections to the TMDB API
 - Verify your TMDB account is in good standing
 
-== Changelog ==
+## Changelog
 
-= 1.0.0 =
+- 1.0
 * Initial release
 
-== Upgrade Notice ==
+## Upgrade Notice
 
-= 1.0.0 =
+- 1.0
 Initial release of Letterboxd Connect.
 
-== Screenshots ==
+## Screenshots
 
 Coming soon!
 
-== Credits ==
+## Credits
 
 - Uses the [TMDB API](https://www.themoviedb.org/documentation/api) for enhanced film data
 - Inspired by the Letterboxd community
