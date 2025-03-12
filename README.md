@@ -1,4 +1,4 @@
-=== Letterboxd Connect ===
+# Letterboxd Connect
 Contributors: dcstagg
 Tags: letterboxd, movies, films, import, tmdb
 Requires at least: 5.0
