@@ -29,11 +29,11 @@ class Letterboxd_Settings_Manager {
      */
     private const OPTION_NAME = "letterboxd_wordpress_options";
     private const OPTION_GROUP = "letterboxd_wordpress_options_group";
-    private const MENU_SLUG = "letterboxd-wordpress";
+    private const MENU_SLUG = "letterboxd-connect";
     private const NONCE_ACTION = "letterboxd_settings_action";
     private const NONCE_NAME = "letterboxd_settings_nonce";
     private const AJAX_ACTION = "letterboxd_ajax_action";
-    private const REST_NAMESPACE = "letterboxd-wordpress/v1";
+    private const REST_NAMESPACE = "letterboxd-connect/v1";
     private const ADVANCED_OPTION_NAME = "letterboxd_wordpress_advanced_options";
 
     /**
@@ -321,7 +321,7 @@ class Letterboxd_Settings_Manager {
         return new WP_REST_Response(
             [
                 "success" => true,
-                "message" => __("API key is valid.", "letterboxd-wordpress"),
+                "message" => __("API key is valid.", "letterboxd-connect"),
             ],
             200
         );
@@ -357,7 +357,7 @@ class Letterboxd_Settings_Manager {
                     "tmdb_auth_error",
                     __(
                         "Authentication session expired. Please try again.",
-                        "letterboxd-wordpress"
+                        "letterboxd-connect"
                     )
                 );
             }
@@ -379,7 +379,7 @@ class Letterboxd_Settings_Manager {
                     "success" => false,
                     "message" => __(
                         "Insufficient permissions",
-                        "letterboxd-wordpress"
+                        "letterboxd-connect"
                     ),
                 ],
                 403
@@ -487,7 +487,7 @@ class Letterboxd_Settings_Manager {
                 "success" => true,
                 "message" => __(
                     "Settings saved successfully.",
-                    "letterboxd-wordpress"
+                    "letterboxd-connect"
                 ),
             ],
             200
@@ -519,7 +519,7 @@ class Letterboxd_Settings_Manager {
         return new WP_REST_Response(
             [
                 "success" => true,
-                "message" => __("Username is valid.", "letterboxd-wordpress"),
+                "message" => __("Username is valid.", "letterboxd-connect"),
             ],
             200
         );
@@ -571,8 +571,8 @@ class Letterboxd_Settings_Manager {
      */
     public function add_settings_page(): void {
         add_options_page(
-            __("Letterboxd to WordPress Settings", "letterboxd-wordpress"),
-            __("Letterboxd Import", "letterboxd-wordpress"),
+            __("Letterboxd Connect Settings", "letterboxd-connect"),
+            __("Letterboxd Connect", "letterboxd-connect"),
             "manage_options",
             self::MENU_SLUG,
             [$this, "render_settings_page"]
@@ -594,7 +594,7 @@ class Letterboxd_Settings_Manager {
         foreach ($fields as $field => $data) {
             add_settings_field(
                 $field,
-                __($data["label"], "letterboxd-wordpress"),
+                $data["label"],
                 [$this, $data["callback"]],
                 $page,
                 $section
@@ -622,14 +622,14 @@ class Letterboxd_Settings_Manager {
 
         add_settings_section(
             "letterboxd_wordpress_main",
-            __("Main Settings", "letterboxd-wordpress"),
+            __("Main Settings", "letterboxd-connect"),
             [$this, "render_settings_description"],
             self::MENU_SLUG
         );
 
         add_settings_section(
             "letterboxd_wordpress_advanced",
-            __("Advanced Settings", "letterboxd-wordpress"),
+            __("Advanced Settings", "letterboxd-connect"),
             [$this, "render_advanced_settings_description"],
             self::MENU_SLUG . "_advanced"
         );
@@ -654,157 +654,14 @@ class Letterboxd_Settings_Manager {
         if (!current_user_can("manage_options")) {
             return;
         }
-
+    
         // Get active tab
         $active_tab = isset($_GET["tab"])
             ? sanitize_key($_GET["tab"])
             : "general";
-
-        ob_start();
-        ?>
-        <div class="wrap">
-            <h1><?php echo esc_html(get_admin_page_title()); ?></h1>
-            
-            <h2 class="nav-tab-wrapper">
-                <a href="?page=<?php echo self::MENU_SLUG; ?>&tab=general" class="nav-tab <?php echo $active_tab ===
-"general"
-    ? "nav-tab-active"
-    : ""; ?>">
-                    <?php esc_html_e(
-                        "General Settings",
-                        "letterboxd-wordpress"
-                    ); ?>
-                </a>
-                <a href="?page=<?php echo self::MENU_SLUG; ?>&tab=advanced" class="nav-tab <?php echo $active_tab ===
-"advanced"
-    ? "nav-tab-active"
-    : ""; ?>">
-                    <?php esc_html_e(
-                        "Advanced Settings",
-                        "letterboxd-wordpress"
-                    ); ?>
-                </a>
-            </h2>
-            
-            <div id="letterboxd-settings-container">
-                <form id="letterboxd-settings-form" action="options.php" method="post">
-                    <?php wp_nonce_field(
-                        self::NONCE_ACTION,
-                        self::NONCE_NAME
-                    ); ?>
-                    
-                    <div id="tab-content-container">
-                        <?php if ($active_tab === "general"): ?>
-                            <!-- General Settings Tab -->
-                            <div id="general-settings" class="tab-content active">
-                                <?php
-                                settings_fields(self::OPTION_GROUP);
-                                do_settings_sections(self::MENU_SLUG);
-                                ?>
-                            </div>
-                        <?php else: ?>
-                            <!-- Advanced Settings Tab -->
-                            <div id="advanced-settings" class="tab-content active">
-                                <?php
-                                settings_fields(self::OPTION_GROUP);
-                                do_settings_sections(
-                                    self::MENU_SLUG . "_advanced"
-                                );
-                                ?>
-                                
-                                <input type="hidden" name="username" value="<?php echo esc_attr(
-                                    $this->options["username"]
-                                ); ?>">
-                                <input type="hidden" name="start_date" value="<?php echo esc_attr(
-                                    $this->options["start_date"]
-                                ); ?>">
-                                <input type="hidden" name="draft_status" value="<?php echo $this
-                                    ->options["draft_status"]
-                                    ? "1"
-                                    : "0"; ?>">
-                                
-                                <?php if (
-                                    empty(
-                                        $this->advanced_options[
-                                            "tmdb_session_id"
-                                        ]
-                                    )
-                                ): ?>
-                                <div class="tmdb-auth-section">
-                                    <h3><?php esc_html_e(
-                                        "TMDB Authorization",
-                                        "letterboxd-wordpress"
-                                    ); ?></h3>
-                                    <p><?php esc_html_e(
-                                        "Authorize this plugin to access your TMDB account for enhanced functionality.",
-                                        "letterboxd-wordpress"
-                                    ); ?></p>
-                                    
-                                    <button type="button" id="tmdb-authorize-button" class="button button-secondary">
-                                        <?php esc_html_e(
-                                            "Authorize with TMDB",
-                                            "letterboxd-wordpress"
-                                        ); ?>
-                                    </button>
-                                    <div id="tmdb-auth-status"></div>
-                                </div>
-                                <?php else: ?>
-                                <div class="tmdb-auth-section">
-                                    <h3><?php esc_html_e(
-                                        "TMDB Authentication",
-                                        "letterboxd-wordpress"
-                                    ); ?></h3>
-                                    <div class="notice notice-success inline">
-                                        <p><?php esc_html_e(
-                                            "Successfully authenticated with TMDB",
-                                            "letterboxd-wordpress"
-                                        ); ?></p>
-                                    </div>
-                                </div>
-                                <?php endif; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <div id="username-validation-message" class="notice hidden"></div>
-                    <div id="settings-update-message" class="notice hidden"></div>
-                    
-                    <?php if ($active_tab === "advanced"): ?>
-                        <!-- In the Advanced Settings Tab, after the TMDB API key section -->
-                        <div class="tmdb-bulk-update-section">
-                            <h3><?php esc_html_e(
-                                "Update TMDB Data",
-                                "letterboxd-wordpress"
-                            ); ?></h3>
-                            <p><?php esc_html_e(
-                                "Update movie metadata from TMDB for all your existing movies.",
-                                "letterboxd-wordpress"
-                            ); ?></p>
-                            <?php $this->render_update_tmdb_button(); ?>
-                        </div>
-                    <?php endif; ?>
-                    
-                    <?php if ($active_tab === "general"): ?>
-                    <div class="import-after-save">
-                        <label for="letterboxd_run_import_trigger">
-                            <input type="checkbox" id="letterboxd_run_import_trigger" name="letterboxd_run_import_trigger" value="1">
-                            <span class="description"><?php esc_html_e(
-                                "Run an import after save",
-                                "letterboxd-wordpress"
-                            ); ?></span>
-                        </label>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <?php submit_button(
-                        __("Save Settings", "letterboxd-wordpress"),
-                        "primary",
-                        "save-settings"
-                    ); ?>
-                </form>
-            </div>
-        </div>
-        <?php echo ob_get_clean();
+        
+        // Include template instead of using output buffering
+        include_once plugin_dir_path(__FILE__) . 'templates/settings-page.php';
     }
 
     /**
@@ -815,7 +672,7 @@ class Letterboxd_Settings_Manager {
         <p>
             <?php esc_html_e(
                 "Configure advanced settings for enhancing your Letterboxd imports with additional data sources.",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ); ?>
         </p>
         <?php
@@ -838,13 +695,13 @@ class Letterboxd_Settings_Manager {
             <span id="tmdb-api-validation-result"></span>',
             esc_attr(self::ADVANCED_OPTION_NAME),
             esc_attr($this->advanced_options["tmdb_api_key"]),
-            esc_html__("Test Connection", "letterboxd-wordpress"),
+            esc_html__("Test Connection", "letterboxd-connect"),
             esc_html__(
                 "Your API key from The Movie Database:",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
             esc_url("https://developer.themoviedb.org/docs/getting-started"),
-            esc_html__("Get one here", "letterboxd-wordpress")
+            esc_html__("Get one here", "letterboxd-connect")
         );
     }
 
@@ -863,14 +720,14 @@ class Letterboxd_Settings_Manager {
             esc_url($url),
             esc_html__(
                 "Update TMDB Data for All Movies",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             )
         );
 
         echo '<p class="description">' .
             esc_html__(
                 "Fetch and update TMDB data for all existing movies. This process runs in batches to prevent timeouts.",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ) .
             "</p>";
 
@@ -878,7 +735,7 @@ class Letterboxd_Settings_Manager {
         echo '<div id="tmdb-update-progress" class="tmdb-update-progress" style="display:none; margin-top: 10px;">';
         echo '<div class="tmdb-progress-bar"><div class="tmdb-progress-inner"></div></div>';
         echo '<p class="tmdb-progress-status">' .
-            esc_html__("Processing...", "letterboxd-wordpress") .
+            esc_html__("Processing...", "letterboxd-connect") .
             ' <span class="tmdb-progress-count">0</span>%</p>';
         echo "</div>";
 
@@ -922,7 +779,7 @@ class Letterboxd_Settings_Manager {
                     if (confirm('<?php echo esc_js(
                         __(
                             "This process may take several minutes depending on your number of movies. Continue?",
-                            "letterboxd-wordpress"
+                            "letterboxd-connect"
                         )
                     ); ?>')) {
                         e.preventDefault();
@@ -931,7 +788,7 @@ class Letterboxd_Settings_Manager {
                         progressDiv.style.display = 'block';
                         updateButton.classList.add('processing');
                         updateButton.innerHTML = '<?php echo esc_js(
-                            __("Processing...", "letterboxd-wordpress")
+                            __("Processing...", "letterboxd-connect")
                         ); ?>';
                         
                         // Function to update progress through AJAX
@@ -982,7 +839,7 @@ class Letterboxd_Settings_Manager {
                                     alert('<?php echo esc_js(
                                         __(
                                             "An error occurred. Please try again.",
-                                            "letterboxd-wordpress"
+                                            "letterboxd-connect"
                                         )
                                     ); ?>');
                                     window.location.reload();
@@ -1011,15 +868,15 @@ class Letterboxd_Settings_Manager {
             !isset($_GET["_wpnonce"]) ||
             !wp_verify_nonce($_GET["_wpnonce"], "update_tmdb_data")
         ) {
-            wp_die(__("Security check failed.", "letterboxd-wordpress"));
+            wp_die(esc_html__("Security check failed.", "letterboxd-connect"));
         }
 
         // Verify permissions
         if (!current_user_can("manage_options")) {
             wp_die(
-                __(
+                esc_html__(
                     "You do not have sufficient permissions to perform this action.",
-                    "letterboxd-wordpress"
+                    "letterboxd-connect"
                 )
             );
         }
@@ -1040,12 +897,12 @@ class Letterboxd_Settings_Manager {
             add_settings_error(
                 "letterboxd_messages",
                 "tmdb_api_missing",
-                __("TMDB API key is not configured.", "letterboxd-wordpress")
+                __("TMDB API key is not configured.", "letterboxd-connect")
             );
             set_transient("settings_errors", get_settings_errors(), 30);
             wp_redirect(
                 admin_url(
-                    "options-general.php?page=letterboxd-wordpress&tab=advanced&error=api_missing"
+                    "options-general.php?page=letterboxd-connect&tab=advanced&error=api_missing"
                 )
             );
             exit();
@@ -1176,9 +1033,10 @@ class Letterboxd_Settings_Manager {
 
         // Process completed - prepare summary message
         $message = sprintf(
+            /* translators: 1: Number of processed items, 2: Number of updated items, 3: Number of failed items */
             __(
-                "TMDB data update completed. Processed: %d, Updated: %d, Failed: %d",
-                "letterboxd-wordpress"
+                "TMDB data update completed. Processed: %1\$d, Updated: %2\$d, Failed: %3\$d",
+                "letterboxd-connect"
             ),
             $processed_total,
             $updated_total,
@@ -1202,7 +1060,7 @@ class Letterboxd_Settings_Manager {
         set_transient("settings_errors", get_settings_errors(), 30);
         wp_redirect(
             admin_url(
-                "options-general.php?page=letterboxd-wordpress&tab=advanced&updated=true"
+                "options-general.php?page=letterboxd-connect&tab=advanced&updated=true"
             )
         );
         exit();
@@ -1222,7 +1080,7 @@ class Letterboxd_Settings_Manager {
         // jQuery UI styles first (dependency for admin styles)
         wp_enqueue_style(
             "letterboxd-jquery-ui",
-            "https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css",
+            plugin_dir_url(__FILE__) . 'assets/css/jquery-ui.min.css',
             [],
             "1.12.1"
         );
@@ -1329,7 +1187,7 @@ class Letterboxd_Settings_Manager {
             if (empty($date) || $this->api_service->validateDate($date)) {
                 $validated["start_date"] = $date;
             } else {
-                $errors[] = __("Invalid date format.", "letterboxd-wordpress");
+                $errors[] = __("Invalid date format.", "letterboxd-connect");
             }
         }
 
@@ -1337,7 +1195,7 @@ class Letterboxd_Settings_Manager {
         $validated["draft_status"] = !empty($input["draft_status"]);
 
         if (!empty($errors)) {
-            throw new \Exception(implode(" ", $errors));
+            throw new \Exception(esc_html(implode(" ", $errors)));
         }
 
         return $validated;
@@ -1403,7 +1261,7 @@ class Letterboxd_Settings_Manager {
         <p>
             <?php esc_html_e(
                 "Configure your Letterboxd import settings below. Make sure to save your settings before importing.",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ); ?>
         </p>
         <?php
@@ -1418,7 +1276,7 @@ class Letterboxd_Settings_Manager {
             <p class="description">%s</p>',
             esc_attr(self::OPTION_NAME),
             esc_attr($this->options["username"]),
-            esc_html__("Your Letterboxd username", "letterboxd-wordpress")
+            esc_html__("Your Letterboxd username", "letterboxd-connect")
         );
     }
 
@@ -1431,10 +1289,10 @@ class Letterboxd_Settings_Manager {
             <p class="description">%s</p>',
             esc_attr(self::OPTION_NAME),
             esc_attr($this->options["start_date"]),
-            esc_attr(date("Y-m-d")),
+            esc_attr(gmdate("Y-m-d")),
             esc_html__(
                 "Optional: Only import movies watched after this date",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             )
         );
     }
@@ -1450,7 +1308,7 @@ class Letterboxd_Settings_Manager {
             checked($this->options["draft_status"], true, false),
             esc_html__(
                 "Save imported movies as drafts instead of publishing immediately",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             )
         );
     }
@@ -1484,7 +1342,7 @@ class Letterboxd_Settings_Manager {
         $settings_link = sprintf(
             '<a href="%s">%s</a>',
             admin_url("options-general.php?page=" . self::MENU_SLUG),
-            __("Settings", "letterboxd-wordpress")
+            __("Settings", "letterboxd-connect")
         );
         // Prepend the link so it appears first
         array_unshift($links, $settings_link);
@@ -1503,13 +1361,13 @@ class Letterboxd_Settings_Manager {
             $new_columns[$key] = $value;
             if ($key === "title") {
                 // Insert after the Title column
-                $new_columns["rating"] = __("Rating", "letterboxd-wordpress");
+                $new_columns["rating"] = __("Rating", "letterboxd-connect");
 
                 // Only add director column if TMDB is authenticated
                 if ($this->is_tmdb_authenticated()) {
                     $new_columns["director"] = __(
                         "Director",
-                        "letterboxd-wordpress"
+                        "letterboxd-connect"
                     );
                 }
             }
@@ -1529,7 +1387,7 @@ class Letterboxd_Settings_Manager {
                 $rating = get_post_meta($post_id, "movie_rating", true);
                 echo $rating
                     ? esc_html($rating)
-                    : __("No Rating", "letterboxd-wordpress");
+                    : esc_html__("No Rating", "letterboxd-connect");
                 break;
 
             case "director":
@@ -1550,7 +1408,7 @@ class Letterboxd_Settings_Manager {
         if (empty($username)) {
             return new WP_Error(
                 "invalid_username",
-                __("Username cannot be empty.", "letterboxd-wordpress")
+                __("Username cannot be empty.", "letterboxd-connect")
             );
         }
 
@@ -1562,9 +1420,10 @@ class Letterboxd_Settings_Manager {
             return new WP_Error(
                 "invalid_username",
                 sprintf(
+                    /* translators: 1: Minimum username length, 2: Maximum username length */
                     __(
-                        "Username must be between %d and %d characters.",
-                        "letterboxd-wordpress"
+                        "Username must be between %1\$d and %2\$d characters.",
+                        "letterboxd-connect"
                     ),
                     self::USERNAME_MIN_LENGTH,
                     self::USERNAME_MAX_LENGTH
@@ -1578,7 +1437,7 @@ class Letterboxd_Settings_Manager {
                 "invalid_username",
                 __(
                     "Username can only contain lowercase letters, numbers, and hyphens. It cannot start or end with a hyphen.",
-                    "letterboxd-wordpress"
+                    "letterboxd-connect"
                 )
             );
         }

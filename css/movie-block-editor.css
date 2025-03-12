@@ -3,17 +3,17 @@
 }
 /* Editor-specific styles */
 .movie-item h3.movie-title { overflow-wrap: normal; }
-.wp-block-letterboxd-wordpress-movie-grid { padding: 1rem; }
+.wp-block-letterboxd-connect-movie-grid { padding: 1rem; }
 .movie-grid-preview.is-loading { opacity: 0.6; }
-.wp-block-letterboxd-wordpress-movie-grid .components-placeholder { min-height: 8rem; padding: 1.5rem; background: #f8f9f9; }
-.wp-block-letterboxd-wordpress-movie-grid .components-panel__body { border-top: 1px solid #e2e4e7; }
-.wp-block-letterboxd-wordpress-movie-grid .components-base-control { margin-bottom: 1.5rem; }
-.wp-block-letterboxd-wordpress-movie-grid .components-range-control { width: 100%; }
-.wp-block-letterboxd-wordpress-movie-grid .components-select-control { width: 100%; }
+.wp-block-letterboxd-connect-movie-grid .components-placeholder { min-height: 8rem; padding: 1.5rem; background: #f8f9f9; }
+.wp-block-letterboxd-connect-movie-grid .components-panel__body { border-top: 1px solid #e2e4e7; }
+.wp-block-letterboxd-connect-movie-grid .components-base-control { margin-bottom: 1.5rem; }
+.wp-block-letterboxd-connect-movie-grid .components-range-control { width: 100%; }
+.wp-block-letterboxd-connect-movie-grid .components-select-control { width: 100%; }
 .components-panel__body.is-opened > .components-panel__body-title { margin-bottom: 1rem; }
-.editor-styles-wrapper .wp-block-letterboxd-wordpress-movie-grid .editor-preview .movie-grid.columns-1,
-.editor-styles-wrapper .wp-block-letterboxd-wordpress-movie-grid .editor-preview .movie-grid.columns-2 { gap: var(--grid-gap-l); }
-.editor-styles-wrapper .wp-block-letterboxd-wordpress-movie-grid .movie-grid-preview .movie-grid,
-.editor-styles-wrapper .wp-block-letterboxd-wordpress-movie-grid .movie-grid-preview .movie-grid,
-.editor-styles-wrapper .wp-block-letterboxd-wordpress-movie-grid .movie-grid-preview .movie-grid,
-.editor-styles-wrapper .wp-block-letterboxd-wordpress-movie-grid .editor-preview .movie-grid { gap: var(--grid-gap); }
+.editor-styles-wrapper .wp-block-letterboxd-connect-movie-grid .editor-preview .movie-grid.columns-1,
+.editor-styles-wrapper .wp-block-letterboxd-connect-movie-grid .editor-preview .movie-grid.columns-2 { gap: var(--grid-gap-l); }
+.editor-styles-wrapper .wp-block-letterboxd-connect-movie-grid .movie-grid-preview .movie-grid,
+.editor-styles-wrapper .wp-block-letterboxd-connect-movie-grid .movie-grid-preview .movie-grid,
+.editor-styles-wrapper .wp-block-letterboxd-connect-movie-grid .movie-grid-preview .movie-grid,
+.editor-styles-wrapper .wp-block-letterboxd-connect-movie-grid .editor-preview .movie-grid { gap: var(--grid-gap); }

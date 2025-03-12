@@ -2,7 +2,7 @@
 /**
  * Security measures for Letterboxd plugin
  *
- * @package letterboxd-wordpress
+ * @package letterboxd-connect
  */
 
 // Prevent direct access
@@ -20,7 +20,7 @@ trait LetterboxdSecurity {
         if ($this->is_rate_limited()) {
             return new WP_Error(
                 'rate_limit_exceeded',
-                __('Too many requests. Please try again later.', 'letterboxd-wordpress')
+                __('Too many requests. Please try again later.', 'letterboxd-connect')
             );
         }
 
@@ -28,7 +28,7 @@ trait LetterboxdSecurity {
         if (!current_user_can('manage_options')) {
             return new WP_Error(
                 'insufficient_permissions',
-                __('You do not have permission to perform this action.', 'letterboxd-wordpress')
+                __('You do not have permission to perform this action.', 'letterboxd-connect')
             );
         }
 
@@ -37,7 +37,7 @@ trait LetterboxdSecurity {
             !in_array($_SERVER['REQUEST_METHOD'], ['GET', 'POST'])) {
             return new WP_Error(
                 'invalid_request_method',
-                __('Invalid request method.', 'letterboxd-wordpress')
+                __('Invalid request method.', 'letterboxd-connect')
             );
         }
 
@@ -45,7 +45,7 @@ trait LetterboxdSecurity {
         if (!check_admin_referer($action, $nonce_name)) {
             return new WP_Error(
                 'invalid_nonce',
-                __('Security check failed. Please refresh the page and try again.', 'letterboxd-wordpress')
+                __('Security check failed. Please refresh the page and try again.', 'letterboxd-connect')
             );
         }
 
@@ -60,14 +60,14 @@ trait LetterboxdSecurity {
     private function verify_ajax_nonce(): void {
         if (!check_ajax_referer('letterboxd_ajax_action', 'nonce', false)) {
             throw new Exception(
-                __('Invalid security token. Please refresh the page.', 'letterboxd-wordpress')
+            esc_html__('Invalid security token. Please refresh the page.', 'letterboxd-connect')
             );
         }
 
         // Additional AJAX security checks
         if (!wp_doing_ajax()) {
             throw new Exception(
-                __('Invalid request method.', 'letterboxd-wordpress')
+            esc_html__('Invalid request method.', 'letterboxd-connect')
             );
         }
     }

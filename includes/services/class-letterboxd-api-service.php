@@ -2,7 +2,7 @@
 /**
  * Letterboxd API Service implementation
  *
- * @package letterboxd-wordpress
+ * @package letterboxd-connect
  * @since 1.1.0
  */
 class LetterboxdApiService implements LetterboxdApiServiceInterface {
@@ -42,7 +42,7 @@ class LetterboxdApiService implements LetterboxdApiServiceInterface {
 		if (empty($username)) {
 			return new WP_Error(
 				"empty_username",
-				__("Username cannot be empty.", "letterboxd-wordpress")
+				__("Username cannot be empty.", "letterboxd-connect")
 			);
 		}
 
@@ -53,9 +53,10 @@ class LetterboxdApiService implements LetterboxdApiServiceInterface {
 			return new WP_Error(
 				"invalid_length",
 				sprintf(
+					/* translators: 1: Minimum username length, 2: Maximum username length */
 					__(
-						"Username must be between %d and %d characters.",
-						"letterboxd-wordpress"
+						"Username must be between %1\$d and %2\$d characters.",
+						"letterboxd-connect"
 					),
 					self::USERNAME_MIN_LENGTH,
 					self::USERNAME_MAX_LENGTH
@@ -68,7 +69,7 @@ class LetterboxdApiService implements LetterboxdApiServiceInterface {
 				"invalid_format",
 				__(
 					"Username can only contain lowercase letters, numbers, and hyphens. It cannot start or end with a hyphen.",
-					"letterboxd-wordpress"
+					"letterboxd-connect"
 				)
 			);
 		}
@@ -86,7 +87,7 @@ class LetterboxdApiService implements LetterboxdApiServiceInterface {
 		if (empty($api_key)) {
 			return new WP_Error(
 				"empty_api_key",
-				__("API key cannot be empty.", "letterboxd-wordpress")
+				__("API key cannot be empty.", "letterboxd-connect")
 			);
 		}
 
@@ -114,7 +115,8 @@ class LetterboxdApiService implements LetterboxdApiServiceInterface {
 			return new WP_Error(
 				"tmdb_api_error",
 				sprintf(
-					__("API error (%d): %s", "letterboxd-wordpress"),
+					/* translators: 1: Response code, 2: Error message */
+					__("API error (%1\$d): %2\$s", "letterboxd-connect"),
 					$response_code,
 					$error_message
 				)
@@ -134,7 +136,7 @@ class LetterboxdApiService implements LetterboxdApiServiceInterface {
 		if (empty($api_key)) {
 			return new WP_Error(
 				"empty_api_key",
-				__("API key is not configured.", "letterboxd-wordpress")
+				__("API key is not configured.", "letterboxd-connect")
 			);
 		}
 
@@ -155,7 +157,7 @@ class LetterboxdApiService implements LetterboxdApiServiceInterface {
 				$body["status_message"] ??
 					__(
 						"Failed to create request token.",
-						"letterboxd-wordpress"
+						"letterboxd-connect"
 					)
 			);
 		}
@@ -180,7 +182,7 @@ class LetterboxdApiService implements LetterboxdApiServiceInterface {
 		if (empty($api_key)) {
 			return new WP_Error(
 				"empty_api_key",
-				__("API key is not configured.", "letterboxd-wordpress")
+				__("API key is not configured.", "letterboxd-connect")
 			);
 		}
 
@@ -203,7 +205,7 @@ class LetterboxdApiService implements LetterboxdApiServiceInterface {
 			return new WP_Error(
 				"tmdb_session_error",
 				$body["status_message"] ??
-					__("Failed to create session.", "letterboxd-wordpress")
+					__("Failed to create session.", "letterboxd-connect")
 			);
 		}
 

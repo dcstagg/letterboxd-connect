@@ -2,7 +2,7 @@
 /**
  * Handles the import of movies from Letterboxd
  *
- * @package letterboxd-wordpress
+ * @package letterboxd-connect
  * @since 1.0.0
  */
 
@@ -83,7 +83,7 @@ class Letterboxd_Importer {
                 throw new Exception(
                     __(
                         "Another import is currently running.",
-                        "letterboxd-wordpress"
+                        "letterboxd-connect"
                     )
                 );
             }
@@ -102,7 +102,7 @@ class Letterboxd_Importer {
                 throw new Exception(
                     __(
                         "No Letterboxd username configured.",
-                        "letterboxd-wordpress"
+                        "letterboxd-connect"
                     )
                 );
             }
@@ -171,7 +171,7 @@ class Letterboxd_Importer {
             )
         ) {
             throw new Exception(
-                __("Security check failed", "letterboxd-wordpress")
+                esc_html__("Security check failed", "letterboxd-connect")
             );
         }
 
@@ -179,13 +179,13 @@ class Letterboxd_Importer {
             $options["username"]
         );
         if (is_wp_error($username_validation)) {
-            throw new Exception($username_validation->get_error_message());
+            throw new Exception(esc_html($username_validation->get_error_message()));
         }
 
         if (!empty($options["start_date"])) {
             $date_validation = $this->validate_date($options["start_date"]);
             if (is_wp_error($date_validation)) {
-                throw new Exception($date_validation->get_error_message());
+                throw new Exception(esc_html($date_validation->get_error_message()));
             }
         }
     }
@@ -228,11 +228,12 @@ class Letterboxd_Importer {
         if (is_wp_error($response)) {
             throw new Exception(
                 sprintf(
-                    __(
+                    // translators: %s: Error message
+                    esc_html__(
                         "Failed to fetch Letterboxd feed: %s",
-                        "letterboxd-wordpress"
+                        "letterboxd-connect"
                     ),
-                    $response->get_error_message()
+                    esc_html($response->get_error_message())
                 )
             );
         }
@@ -241,11 +242,12 @@ class Letterboxd_Importer {
         if ($status_code !== 200) {
             throw new Exception(
                 sprintf(
-                    __(
+                    // translators: %d: HTTP status code
+                    esc_html__(
                         "Failed to fetch Letterboxd feed: HTTP %d",
-                        "letterboxd-wordpress"
+                        "letterboxd-connect"
                     ),
-                    $status_code
+                    intval($status_code)
                 )
             );
         }
@@ -258,15 +260,15 @@ class Letterboxd_Importer {
 
         if (empty($content)) {
             throw new Exception(
-                __("Empty feed content received", "letterboxd-wordpress")
+                esc_html__("Empty feed content received", "letterboxd-connect")
             );
         }
 
         if (strlen($content) > self::MAX_FEED_SIZE) {
             throw new Exception(
-                __(
+                esc_html__(
                     "Feed content exceeds maximum size limit",
-                    "letterboxd-wordpress"
+                    "letterboxd-connect"
                 )
             );
         }
@@ -458,9 +460,10 @@ class Letterboxd_Importer {
             "imported" => $imported,
             "status" => "success",
             "message" => sprintf(
+                /* translators: %d: Number of imported movies */
                 __(
                     "Successfully imported %d new movies.",
-                    "letterboxd-wordpress"
+                    "letterboxd-connect"
                 ),
                 $imported
             )
@@ -601,7 +604,7 @@ class Letterboxd_Importer {
         // Early validation of required fields
         if (empty($item["title"]) || empty($item["description"])) {
             throw new Exception(
-                __("Missing required movie data fields", "letterboxd-wordpress")
+                esc_html__("Missing required movie data fields", "letterboxd-connect")
             );
         }
 
@@ -615,7 +618,7 @@ class Letterboxd_Importer {
         $meta_input = [
             "letterboxd_url" => $item["link"] ?? "",
             "watch_date" => !empty($item["pubDate"])
-                ? date("Y-m-d", strtotime($item["pubDate"]))
+                ? gmdate("Y-m-d", strtotime($item["pubDate"]))
                 : "",
             "poster_url" => $item["poster_url"] ?? "",
             "movie_rating" => $parsed["rating"],
@@ -657,7 +660,7 @@ class Letterboxd_Importer {
                     "meta_input" => [
                         "letterboxd_url" => $item["link"] ?? "",
                         "watch_date" => !empty($item["pubDate"])
-                            ? date("Y-m-d", strtotime($item["pubDate"]))
+                            ? gmdate("Y-m-d", strtotime($item["pubDate"]))
                             : "",
                         "poster_url" => $poster_url,
                         "movie_rating" => $item["rating"] ?? "",
@@ -720,7 +723,7 @@ class Letterboxd_Importer {
         // Prepare a file array similar to a $_FILES entry.
         $file_array = [];
         // Extract a filename from the URL. Fallback to a default if needed.
-        $parsed_url = parse_url($poster_url, PHP_URL_PATH);
+        $parsed_url = wp_parse_url($poster_url, PHP_URL_PATH);
         $file_array["name"] = basename($parsed_url);
         if (empty($file_array["name"])) {
             $file_array["name"] = "poster.jpg";
@@ -738,7 +741,12 @@ class Letterboxd_Importer {
                 "Failed to sideload image: " . $attach_id->get_error_message()
             );
             // Cleanup temporary file if needed.
-            @unlink($file_array["tmp_name"]);
+            global $wp_filesystem;
+            if (empty($wp_filesystem)) {
+                require_once(ABSPATH . '/wp-admin/includes/file.php');
+                WP_Filesystem();
+            }
+            $wp_filesystem->delete($file_array["tmp_name"]);
             return;
         }
 

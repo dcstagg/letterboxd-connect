@@ -2,7 +2,7 @@
 /**
  * Class to handle Movie Block registration and integration
  *
- * @package letterboxd-wordpress
+ * @package letterboxd-connect
  * @since 1.0.0
  */
 
@@ -21,7 +21,7 @@ class Letterboxd_Movie_Block_Renderer {
     /**
      * Block-related constants
      */
-    private const BLOCK_NAME = "letterboxd-wordpress/movie-grid";
+    private const BLOCK_NAME = "letterboxd-connect/movie-grid";
     private const CACHE_GROUP = "letterboxd_blocks";
     private const CACHE_DURATION = 3600; // 1 hour
     private const MOVIE_POSTER_SIZE = "movie-poster";
@@ -83,7 +83,7 @@ class Letterboxd_Movie_Block_Renderer {
     }
 
     public function register_rest_route(): void {
-        register_rest_route("letterboxd-wordpress/v1", "/render-movie-grid", [
+        register_rest_route("letterboxd-connect/v1", "/render-movie-grid", [
             "methods" => "GET",
             "callback" => [$this, "render_block"],
             "permission_callback" => [$this, "check_block_permissions"],
@@ -125,7 +125,7 @@ class Letterboxd_Movie_Block_Renderer {
             return;
         }
 
-        register_block_type("letterboxd-wordpress/movie-grid", [
+        register_block_type("letterboxd-connect/movie-grid", [
             "api_version" => 2,
             "editor_script" => "letterboxd-blocks",
             "editor_style" => "letterboxd-blocks-editor",
@@ -298,7 +298,7 @@ class Letterboxd_Movie_Block_Renderer {
             if ($show_all) {
                 if ($is_rest) {
                     $pagination = '<div class="pagination-note">' . 
-                        __("Pagination will appear on the front end", "letterboxd-wordpress") . 
+                        __("Pagination will appear on the front end", "letterboxd-connect") . 
                         "</div>";
                 } else {
                     $pagination = $this->render_pagination($query);
@@ -306,7 +306,7 @@ class Letterboxd_Movie_Block_Renderer {
             }
     
             // Create container with appropriate class based on context
-            $container_class = $context === "edit" ? "editor-preview" : "wp-block-letterboxd-wordpress-movie-grid";
+            $container_class = $context === "edit" ? "editor-preview" : "wp-block-letterboxd-connect-movie-grid";
             
             $output = sprintf(
                 '<div class="%s" data-columns="%d" data-display-mode="%s">%s%s</div>',
@@ -474,14 +474,14 @@ class Letterboxd_Movie_Block_Renderer {
             "current" => max(1, get_query_var("paged")),
             "total" => $query->max_num_pages,
             "type" => "array",
-            "prev_text" => __("&laquo; Previous", "letterboxd-wordpress"),
-            "next_text" => __("Next &raquo;", "letterboxd-wordpress"),
+            "prev_text" => __("&laquo; Previous", "letterboxd-connect"),
+            "next_text" => __("Next &raquo;", "letterboxd-connect"),
         ]);
 
         if (is_array($pages)) {
             $pagination =
                 '<nav class="movie-grid-pagination" aria-label="' .
-                __("Movies navigation", "letterboxd-wordpress") .
+                __("Movies navigation", "letterboxd-connect") .
                 '">';
             $pagination .= '<ul class="page-numbers">';
 
@@ -553,7 +553,7 @@ class Letterboxd_Movie_Block_Renderer {
             echo "</div>";
         } else {
             echo '<p class="no-movies">' .
-                esc_html__("No movies found.", "letterboxd-wordpress") .
+                esc_html__("No movies found.", "letterboxd-connect") .
                 "</p>";
         }
 
@@ -562,7 +562,12 @@ class Letterboxd_Movie_Block_Renderer {
     }
 
     /**
-     * Get movie poster HTML with appropriate size parameter
+     * Returns the movie poster HTML
+     *
+     * @param int $post_id The post ID
+     * @param string $size The image size
+     * @param string $title The movie title
+     * @return string The poster HTML
      */
     private function get_movie_poster(
         int $post_id,
@@ -578,7 +583,8 @@ class Letterboxd_Movie_Block_Renderer {
             '<div class="movie-poster">%s</div>',
             get_the_post_thumbnail($post_id, $size, [
                 "alt" => sprintf(
-                    __("Movie poster for %s", "letterboxd-wordpress"),
+                    /* translators: %s: Movie title */
+                    __("Movie poster for %s", "letterboxd-connect"),
                     esc_attr($title)
                 ),
             ])
@@ -732,25 +738,25 @@ class Letterboxd_Movie_Block_Renderer {
         
         // Render using a single template with dynamic class
         printf(
-            '<div class="%s movie-item">
-                %s
+            '<div class="%1$s movie-item">
+                %2$s
                 <div class="movie-details">
-                    %s
+                    %3$s
                     <div class="movie-meta">
-                        %s
-                        %s
-                        %s
+                        %4$s
+                        %5$s
+                        %6$s
                     </div>
-                    %s
+                    %7$s
                 </div>
             </div>',
-            $layout_class,
-            $this->get_movie_poster($post_id, "movie-poster"),
-            $this->get_movie_title($post_id),
-            $date_watched_html,
-            $director_html,
-            $rating_html,
-            $movie_links
+            esc_attr($layout_class),
+            wp_kses_post($this->get_movie_poster($post_id, "movie-poster")),
+            wp_kses_post($this->get_movie_title($post_id)),
+            wp_kses_post($date_watched_html),
+            wp_kses_post($director_html),
+            wp_kses_post($rating_html),
+            wp_kses_post($movie_links)
         );
     }
 
@@ -769,7 +775,7 @@ class Letterboxd_Movie_Block_Renderer {
         return array_merge($sizes, [
             self::MOVIE_POSTER_SIZE => __(
                 "Movie Poster (2:3)",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
         ]);
     }

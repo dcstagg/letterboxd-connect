@@ -2,7 +2,7 @@
 /**
  * Handles interactions with The Movie Database API with improved efficiency
  *
- * @package letterboxd-wordpress
+ * @package letterboxd-connect
  * @since 1.1.0
  */
 
@@ -131,7 +131,7 @@ class Letterboxd_TMDB_Handler {
         if (!$this->is_api_key_configured()) {
             return new WP_Error(
                 "tmdb_api_not_configured",
-                __("TMDB API key is not configured.", "letterboxd-wordpress")
+                __("TMDB API key is not configured.", "letterboxd-connect")
             );
         }
 
@@ -188,7 +188,8 @@ class Letterboxd_TMDB_Handler {
                     return new WP_Error(
                         "tmdb_api_error_" . $status_code,
                         sprintf(
-                            __("TMDB API error: %s", "letterboxd-wordpress"),
+                            /* translators: %s: Error message from TMDB API */
+                            __("TMDB API error: %s", "letterboxd-connect"),
                             $error_message
                         ),
                         ["status" => $status_code]
@@ -202,7 +203,7 @@ class Letterboxd_TMDB_Handler {
                         "tmdb_invalid_response",
                         __(
                             "Invalid response from TMDB API.",
-                            "letterboxd-wordpress"
+                            "letterboxd-connect"
                         )
                     );
                 }
@@ -219,7 +220,7 @@ class Letterboxd_TMDB_Handler {
             "tmdb_rate_limit_exceeded",
             __(
                 "TMDB API rate limit exceeded after retries.",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             )
         );
     }

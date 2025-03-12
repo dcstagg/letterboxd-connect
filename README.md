@@ -1,12 +1,18 @@
-# Letterboxd to WordPress Plugin
+=== Letterboxd Connect ===
+Contributors: dcstagg
+Tags: letterboxd, movies, films, import, tmdb
+Requires at least: 5.0
+Tested up to: 6.7.2
+Stable tag: 1.0
+Requires PHP: 7.4
+License: GPLv3 or later
+License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
-**A WordPress plugin that imports your Letterboxd film diary into your WordPress site as custom movie posts, complete with metadata, posters, and director information.**
+Import your Letterboxd film diary into WordPress as custom movie posts with metadata, posters, and director information.
 
-Author: [David Stagg](https://davidstagg.com)
+== Description ==
 
-## Description
-
-The Letterboxd to WordPress Plugin bridges the gap between your Letterboxd film log and your WordPress site. Letterbox does not offer an API, so this plugin uses the RSS feed of your username to automatically imports your watched films. L2WP creates custom movie posts with optional metadata including ratings, watch dates, posters, and more.
+The Letterboxd Connect Plugin bridges the gap between your Letterboxd film log and your WordPress site. Letterbox does not offer an API, so this plugin uses the RSS feed of your username to automatically imports your watched films. L2WP creates custom movie posts with optional metadata including ratings, watch dates, posters, and more.
 
 ### Key Features
 
@@ -17,18 +23,18 @@ The Letterboxd to WordPress Plugin bridges the gap between your Letterboxd film 
 - **Gutenberg Block**: Display your films in grid or list view with customizable settings
 - **Year Taxonomy**: Films are automatically categorized by release year
 
-## Installation
+== Installation ==
 
 1. Download the plugin zip file
 2. Navigate to your WordPress admin area and go to Plugins > Add New
 3. Click "Upload Plugin" and select the downloaded zip file
 4. Activate the plugin through the 'Plugins' menu
 
-## Configuration
+== Configuration ==
 
 ### Basic Setup
 
-1. Go to Settings > Letterboxd Import
+1. Go to Settings > Letterboxd Connect
 2. Enter your Letterboxd username
 3. Configure import settings (draft status, start date for import)
 4. Save your settings
@@ -42,11 +48,11 @@ For enhanced film data including posters, directors, and streaming information:
 3. Enter your TMDB API key in the plugin settings
 4. Test the connection to verify it's working
 
-## Usage
+== Usage ==
 
 ### Manual Import
 
-1. Visit Settings > Letterboxd Import page
+1. Visit Settings > Letterboxd Connect page
 2. Check the box that says "Run Import After Save"
 2. Save the settings
 3. The plugin will fetch your latest Letterboxd entries and create corresponding movie posts
@@ -66,21 +72,21 @@ Use the custom Gutenberg block to showcase your movies:
 3. Choose between card view (with posters) or list view
 4. Publish your page or post
 
-## FAQ
+== Frequently Asked Questions ==
 
-**Q: How many films can I import?**  
-A: The plugin can handle your entire Letterboxd diary. Import limitations are based on your server resources and WordPress configuration.
+= How many films can I import? =
+The plugin can handle your entire Letterboxd diary. Imports are batched, so limitations are based on your server resources and WordPress configuration.
 
-**Q: Do I need a TMDB API key?**  
-A: No, but it's highly recommended. Without it, you'll miss additional metadata like posters and director information.
+= Do I need a TMDB API key? =
+No, but it's highly recommended. Without it, you'll miss additional metadata like posters and director information.
 
-**Q: How often should I schedule imports?**  
-A: This depends on how frequently you log films on Letterboxd. Daily imports work well for most users.
+= How often should I schedule imports? =
+This depends on how frequently you log films on Letterboxd. Daily imports work well for most users.
 
-**Q: Can I import films from a specific date?**  
-A: Yes, you can set a start date in the plugin settings to limit which films are imported.
+= Can I import films from a specific date? =
+Yes, you can set a start date in the plugin settings to limit which films are imported.
 
-## Troubleshooting
+== Troubleshooting ==
 
 **Import Issues**
 - Verify your Letterboxd username is correct
@@ -92,15 +98,21 @@ A: Yes, you can set a start date in the plugin settings to limit which films are
 - Check that your server allows connections to the TMDB API
 - Verify your TMDB account is in good standing
 
-## Contributing
+== Changelog ==
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+= 1.0.0 =
+* Initial release
 
-## License
+== Upgrade Notice ==
 
-This plugin is licensed under the GNU General Public License v3 or later.
+= 1.0.0 =
+Initial release of Letterboxd Connect.
 
-## Credits
+== Screenshots ==
+
+Coming soon!
+
+== Credits ==
 
 - Uses the [TMDB API](https://www.themoviedb.org/documentation/api) for enhanced film data
 - Inspired by the Letterboxd community

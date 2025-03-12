@@ -1,8 +1,8 @@
 <?php
 /**
- * Helper functions for the Letterboxd to WordPress plugin
+ * Helper functions for the Letterboxd Connect plugin
  *
- * @package letterboxd-wordpress
+ * @package letterboxd-connect
  */
 
 // Prevent direct access
@@ -17,7 +17,7 @@ function letterboxd_register_block_category($categories, $post) {
      return array_merge($categories, [
          [
              'slug' => 'letterboxd-blocks',
-             'title' => __('Letterboxd', 'letterboxd-wordpress'),
+             'title' => __('Letterboxd', 'letterboxd-connect'),
              'icon' => 'video-alt2'
          ]
      ]);
@@ -74,10 +74,17 @@ function letterboxd_cleanup_temp_files() {
     $temp_dir = $upload_dir['basedir'] . '/letterboxd-temp';
     
     if (is_dir($temp_dir)) {
+        // Initialize filesystem
+        global $wp_filesystem;
+        if (empty($wp_filesystem)) {
+            require_once(ABSPATH . '/wp-admin/includes/file.php');
+            WP_Filesystem();
+        }
+        
         $files = glob($temp_dir . '/*');
         foreach ($files as $file) {
             if (is_file($file) && time() - filemtime($file) > 3600) {
-                @unlink($file);
+                $wp_filesystem->delete($file);
             }
         }
     }

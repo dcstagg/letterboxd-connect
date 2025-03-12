@@ -1,11 +1,11 @@
 <?php
 /**
- * Uninstall script for Letterboxd to WordPress plugin
+ * Uninstall script for Letterboxd Connect plugin
  * 
  * This file will be called automatically when the plugin is uninstalled through WordPress.
  * It cleans up all plugin-related data from the database.
  *
- * @package letterboxd-wordpress
+ * @package letterboxd-connect
  */
 
 // Exit if not called by WordPress during uninstall
@@ -244,17 +244,23 @@ class Letterboxd_Uninstaller {
                 // Remove term relationships
                 $placeholders = implode(',', array_fill(0, count($terms), '%d'));
                 $query = "DELETE FROM {$wpdb->term_relationships} WHERE term_taxonomy_id IN ($placeholders)";
+                // Prepare SQL with variable number of placeholders
                 $prepared = call_user_func_array([$wpdb, 'prepare'], array_merge([$query], $terms));
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $prepared is already prepared above
                 $wpdb->query($prepared);
             
                 // Remove term taxonomy
                 $query = "DELETE FROM {$wpdb->term_taxonomy} WHERE term_id IN ($placeholders)";
+                // Prepare SQL with variable number of placeholders
                 $prepared = call_user_func_array([$wpdb, 'prepare'], array_merge([$query], $terms));
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $prepared is already prepared above
                 $wpdb->query($prepared);
             
                 // Remove terms
                 $query = "DELETE FROM {$wpdb->terms} WHERE term_id IN ($placeholders)";
+                // Prepare SQL with variable number of placeholders
                 $prepared = call_user_func_array([$wpdb, 'prepare'], array_merge([$query], $terms));
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $prepared is already prepared above
                 $wpdb->query($prepared);
             }
         }
@@ -312,17 +318,25 @@ class Letterboxd_Uninstaller {
     private function remove_directory(string $dir): void {
         if (is_dir($dir)) {
             $objects = scandir($dir);
+            
+            // Initialize filesystem
+            global $wp_filesystem;
+            if (empty($wp_filesystem)) {
+                require_once(ABSPATH . '/wp-admin/includes/file.php');
+                WP_Filesystem();
+            }
+            
             foreach ($objects as $object) {
                 if ($object !== '.' && $object !== '..') {
                     $path = $dir . '/' . $object;
                     if (is_dir($path)) {
                         $this->remove_directory($path);
                     } else {
-                        unlink($path);
+                        $wp_filesystem->delete($path);
                     }
                 }
             }
-            rmdir($dir);
+            $wp_filesystem->rmdir($dir);
         }
     }
 

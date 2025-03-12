@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Letterboxd to WordPress
- * Plugin URI:
+ * Plugin Name: Letterboxd Connect
+ * Plugin URI: https://letterboxdconnect.com
  * Description: Connect your Letterboxd film diary to WordPress by automatically importing and displaying your watched movies, enhanced by TMDB metadata in customizable grid layouts
  * Version: 1.0
  * Author: David Stagg
@@ -47,9 +47,9 @@ function letterboxd_check_wp_compatibility() {
     if (!$is_compatible) {
         add_action("admin_notices", function () {
             echo '<div class="error"><p>';
-            _e(
-                "Letterboxd to WordPress requires WordPress version 5.6 or higher.",
-                "letterboxd-wordpress"
+            esc_html_e(
+                "Letterboxd Connect requires WordPress version 5.6 or higher.",
+                "letterboxd-connect"
             );
             echo "</p></div>";
         });
@@ -404,14 +404,19 @@ class Letterboxd_To_WordPress {
         // Only show notice if username isn't set
         if (empty($username)) {
             $settings_url = admin_url(
-                "options-general.php?page=letterboxd-wordpress"
+                "options-general.php?page=letterboxd-connect"
             ); ?>
             <div class="notice notice-warning is-dismissible">
                 <p>
-                    <?php printf(
-                        __(
-                            'Please <a href="%s">set your Letterboxd username</a> to start using the Letterboxd to Wordpress plugin',
-                            "letterboxd-wordpress"
+                    <?php
+                    printf(
+                        wp_kses(
+                            // translators: %s is the URL to the settings page
+                            __(
+                                'Please <a href="%s">set your Letterboxd username</a> to start using the Letterboxd Connect plugin',
+                                "letterboxd-connect"
+                            ),
+                            ['a' => ['href' => []]]
                         ),
                         esc_url($settings_url)
                     ); ?>

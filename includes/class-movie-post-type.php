@@ -2,7 +2,7 @@
 /**
  * Handles the Movie custom post type registration and management
  *
- * @package letterboxd-wordpress
+ * @package letterboxd-connect
  * @since 1.0.0
  */
 
@@ -111,7 +111,7 @@ class Letterboxd_Movie_Post_Type {
     public function register_post_type(): void {
         $args = [
             "public" => true,
-            "label" => __("Movies", "letterboxd-wordpress"),
+            "label" => __("Movies", "letterboxd-connect"),
             "labels" => $this->get_labels(),
             "supports" => [
                 "title",
@@ -135,7 +135,7 @@ class Letterboxd_Movie_Post_Type {
                     [
                         "placeholder" => __(
                             "Add movie description...",
-                            "letterboxd-wordpress"
+                            "letterboxd-connect"
                         ),
                     ],
                 ],
@@ -162,69 +162,69 @@ class Letterboxd_Movie_Post_Type {
             "name" => _x(
                 "Movies",
                 "Post type general name",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
             "singular_name" => _x(
                 "Movie",
                 "Post type singular name",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
             "menu_name" => _x(
                 "Movies",
                 "Admin Menu text",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
             "name_admin_bar" => _x(
                 "Movie",
                 "Add New on Toolbar",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
-            "add_new" => _x("Add New", "movie", "letterboxd-wordpress"),
-            "add_new_item" => __("Add New Movie", "letterboxd-wordpress"),
-            "edit_item" => __("Edit Movie", "letterboxd-wordpress"),
-            "new_item" => __("New Movie", "letterboxd-wordpress"),
-            "view_item" => __("View Movie", "letterboxd-wordpress"),
-            "view_items" => __("View Movies", "letterboxd-wordpress"),
-            "search_items" => __("Search Movies", "letterboxd-wordpress"),
-            "not_found" => __("No movies found", "letterboxd-wordpress"),
+            "add_new" => _x("Add New", "movie", "letterboxd-connect"),
+            "add_new_item" => __("Add New Movie", "letterboxd-connect"),
+            "edit_item" => __("Edit Movie", "letterboxd-connect"),
+            "new_item" => __("New Movie", "letterboxd-connect"),
+            "view_item" => __("View Movie", "letterboxd-connect"),
+            "view_items" => __("View Movies", "letterboxd-connect"),
+            "search_items" => __("Search Movies", "letterboxd-connect"),
+            "not_found" => __("No movies found", "letterboxd-connect"),
             "not_found_in_trash" => __(
                 "No movies found in Trash",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
-            "parent_item_colon" => __("Parent Movie:", "letterboxd-wordpress"),
-            "all_items" => __("All Movies", "letterboxd-wordpress"),
-            "archives" => __("Movie Archives", "letterboxd-wordpress"),
-            "attributes" => __("Movie Attributes", "letterboxd-wordpress"),
+            "parent_item_colon" => __("Parent Movie:", "letterboxd-connect"),
+            "all_items" => __("All Movies", "letterboxd-connect"),
+            "archives" => __("Movie Archives", "letterboxd-connect"),
+            "attributes" => __("Movie Attributes", "letterboxd-connect"),
             "insert_into_item" => __(
                 "Insert into movie",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
             "uploaded_to_this_item" => __(
                 "Uploaded to this movie",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
-            "featured_image" => __("Movie Poster", "letterboxd-wordpress"),
+            "featured_image" => __("Movie Poster", "letterboxd-connect"),
             "set_featured_image" => __(
                 "Set movie poster",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
             "remove_featured_image" => __(
                 "Remove movie poster",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
             "use_featured_image" => __(
                 "Use as movie poster",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
             "filter_items_list" => __(
                 "Filter movies list",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
             "items_list_navigation" => __(
                 "Movies list navigation",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
-            "items_list" => __("Movies list", "letterboxd-wordpress"),
+            "items_list" => __("Movies list", "letterboxd-connect"),
         ];
     }
 
@@ -305,7 +305,7 @@ class Letterboxd_Movie_Post_Type {
      */
     public function register_taxonomies(): void {
         register_taxonomy(self::YEAR_TAXONOMY, self::POST_TYPE, [
-            "label" => __("Years", "letterboxd-wordpress"),
+            "label" => __("Years", "letterboxd-connect"),
             "labels" => $this->get_year_labels(),
             "hierarchical" => false,
             "show_in_rest" => true,
@@ -422,20 +422,20 @@ class Letterboxd_Movie_Post_Type {
             "name" => _x(
                 "Years",
                 "taxonomy general name",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
             "singular_name" => _x(
                 "Year",
                 "taxonomy singular name",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
-            "search_items" => __("Search Years", "letterboxd-wordpress"),
-            "all_items" => __("All Years", "letterboxd-wordpress"),
-            "edit_item" => __("Edit Year", "letterboxd-wordpress"),
-            "update_item" => __("Update Year", "letterboxd-wordpress"),
-            "add_new_item" => __("Add New Year", "letterboxd-wordpress"),
-            "new_item_name" => __("New Year", "letterboxd-wordpress"),
-            "menu_name" => __("Years", "letterboxd-wordpress"),
+            "search_items" => __("Search Years", "letterboxd-connect"),
+            "all_items" => __("All Years", "letterboxd-connect"),
+            "edit_item" => __("Edit Year", "letterboxd-connect"),
+            "update_item" => __("Update Year", "letterboxd-connect"),
+            "add_new_item" => __("Add New Year", "letterboxd-connect"),
+            "new_item_name" => __("New Year", "letterboxd-connect"),
+            "menu_name" => __("Years", "letterboxd-connect"),
         ];
     }
 
@@ -475,7 +475,7 @@ class Letterboxd_Movie_Post_Type {
                 "insufficient_permissions",
                 __(
                     "You do not have permission to create terms",
-                    "letterboxd-wordpress"
+                    "letterboxd-connect"
                 )
             );
         }
@@ -576,7 +576,7 @@ class Letterboxd_Movie_Post_Type {
     public function modify_title_placeholder(string $title): string {
         global $post_type;
         if ($post_type === self::POST_TYPE) {
-            return __("Enter movie title", "letterboxd-wordpress");
+            return __("Enter movie title", "letterboxd-connect");
         }
         return $title;
     }
@@ -589,30 +589,32 @@ class Letterboxd_Movie_Post_Type {
 
         $messages[self::POST_TYPE] = [
             0 => "", // Unused. Messages start at index 1.
-            1 => __("Movie updated.", "letterboxd-wordpress"),
-            2 => __("Custom field updated.", "letterboxd-wordpress"),
-            3 => __("Custom field deleted.", "letterboxd-wordpress"),
-            4 => __("Movie updated.", "letterboxd-wordpress"),
+            1 => __("Movie updated.", "letterboxd-connect"),
+            2 => __("Custom field updated.", "letterboxd-connect"),
+            3 => __("Custom field deleted.", "letterboxd-connect"),
+            4 => __("Movie updated.", "letterboxd-connect"),
             5 => isset($_GET["revision"])
                 ? sprintf(
+                    /* translators: %s: revision title */
                     __(
                         "Movie restored to revision from %s",
-                        "letterboxd-wordpress"
+                        "letterboxd-connect"
                     ),
                     wp_post_revision_title((int) $_GET["revision"], false)
                 )
                 : false,
-            6 => __("Movie published.", "letterboxd-wordpress"),
-            7 => __("Movie saved.", "letterboxd-wordpress"),
-            8 => __("Movie submitted.", "letterboxd-wordpress"),
+            6 => __("Movie published.", "letterboxd-connect"),
+            7 => __("Movie saved.", "letterboxd-connect"),
+            8 => __("Movie submitted.", "letterboxd-connect"),
             9 => sprintf(
-                __("Movie scheduled for: %s.", "letterboxd-wordpress"),
+                /* translators: %s: scheduled movie post time */
+                __("Movie scheduled for: %s.", "letterboxd-connect"),
                 date_i18n(
-                    __("M j, Y @ G:i", "letterboxd-wordpress"),
+                    __("M j, Y @ G:i", "letterboxd-connect"),
                     strtotime($post->post_date)
                 )
             ),
-            10 => __("Movie draft updated.", "letterboxd-wordpress"),
+            10 => __("Movie draft updated.", "letterboxd-connect"),
         ];
 
         return $messages;
@@ -643,7 +645,7 @@ class Letterboxd_Movie_Post_Type {
             "get_callback" => [$this, "get_movie_meta"],
             "update_callback" => [$this, "update_movie_meta"],
             "schema" => [
-                "description" => __("Movie metadata", "letterboxd-wordpress"),
+                "description" => __("Movie metadata", "letterboxd-connect"),
                 "type" => "object",
                 "properties" => $this->get_meta_schema_properties(),
             ],
@@ -699,7 +701,7 @@ class Letterboxd_Movie_Post_Type {
                 "rest_cannot_update",
                 __(
                     "Sorry, you are not allowed to update this post.",
-                    "letterboxd-wordpress"
+                    "letterboxd-connect"
                 ),
                 ["status" => rest_authorization_required_code()]
             );

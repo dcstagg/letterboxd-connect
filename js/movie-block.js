@@ -12,7 +12,7 @@ const { useState, Fragment, createElement } = wp.element;
 const ServerSideRender = wp.serverSideRender;
 
 // Block configuration
-const BLOCK_NAME = 'letterboxd-wordpress/movie-grid';
+const BLOCK_NAME = 'letterboxd-connect/movie-grid';
 const DEFAULT_ATTRIBUTES = {
     number: 12,
     showAll: false,
@@ -29,19 +29,19 @@ const DEFAULT_ATTRIBUTES = {
 
 // Editor control options
 const orderOptions = [
-    { label: __('Descending', 'letterboxd-wordpress'), value: 'DESC' },
-    { label: __('Ascending', 'letterboxd-wordpress'), value: 'ASC' }
+    { label: __('Descending', 'letterboxd-connect'), value: 'DESC' },
+    { label: __('Ascending', 'letterboxd-connect'), value: 'ASC' }
 ];
 
 const orderByOptions = [
-    { label: __('Watch Date', 'letterboxd-wordpress'), value: 'watch_date' },
-    { label: __('Movie Title', 'letterboxd-wordpress'), value: 'title' },
-    { label: __('Release Year', 'letterboxd-wordpress'), value: 'release_year' }
+    { label: __('Watch Date', 'letterboxd-connect'), value: 'watch_date' },
+    { label: __('Movie Title', 'letterboxd-connect'), value: 'title' },
+    { label: __('Release Year', 'letterboxd-connect'), value: 'release_year' }
 ];
 
 const displayModeOptions = [
-    { label: __('Cards', 'letterboxd-wordpress'), value: 'cards' },
-    { label: __('List', 'letterboxd-wordpress'), value: 'list' }
+    { label: __('Cards', 'letterboxd-connect'), value: 'cards' },
+    { label: __('List', 'letterboxd-connect'), value: 'list' }
 ];
 
 
@@ -92,57 +92,57 @@ const EditMovieGrid = ({ attributes, setAttributes }) => {
         null,
         createElement(
             PanelBody,
-            { title: __('Movie Grid Settings', 'letterboxd-wordpress') },
+            { title: __('Movie Grid Settings', 'letterboxd-connect') },
             createElement(RadioControl, {
-                label: __('Display Mode', 'letterboxd-wordpress'),
+                label: __('Display Mode', 'letterboxd-connect'),
                 selected: attributes.displayMode,
                 options: displayModeOptions,
                 onChange: (value) => setAttributes({ displayMode: value }),
-                help: __('Choose how to display your movies', 'letterboxd-wordpress')
+                help: __('Choose how to display your movies', 'letterboxd-connect')
             }),
             // Only show columns option for cards display mode
             attributes.displayMode === 'cards' && createElement(RangeControl, {
-                label: __('Columns', 'letterboxd-wordpress'),
+                label: __('Columns', 'letterboxd-connect'),
                 value: attributes.columns,
                 onChange: (value) => setAttributes({ columns: value }),
                 min: 1,
                 max: 6,
                 help: [
-                    __('Select number of columns in the grid,', 'letterboxd-wordpress'),
+                    __('Select number of columns in the grid,', 'letterboxd-connect'),
                     createElement('br', { key: 'break' }),
-                    __('max of two columns show on mobile', 'letterboxd-wordpress')
+                    __('max of two columns show on mobile', 'letterboxd-connect')
                 ]
             }),
             createElement(ToggleControl, {
-                label: __('Show All Movies', 'letterboxd-wordpress'),
+                label: __('Show All Movies', 'letterboxd-connect'),
                 checked: attributes.showAll,
                 onChange: (value) => setAttributes({ showAll: value }),
-                help: __('Enable pagination and show all movies', 'letterboxd-wordpress')
+                help: __('Enable pagination and show all movies', 'letterboxd-connect')
             }),
             !attributes.showAll && createElement(RangeControl, {
-                label: __('Number of Movies', 'letterboxd-wordpress'),
+                label: __('Number of Movies', 'letterboxd-connect'),
                 value: attributes.number,
                 onChange: (value) => setAttributes({ number: value }),
                 min: 1,
                 max: 24,
-                help: __('Select how many movies to display', 'letterboxd-wordpress')
+                help: __('Select how many movies to display', 'letterboxd-connect')
             }),
             attributes.showAll && createElement(RangeControl, {
-                label: __('Movies Per Page', 'letterboxd-wordpress'),
+                label: __('Movies Per Page', 'letterboxd-connect'),
                 value: attributes.perPage,
                 onChange: (value) => setAttributes({ perPage: value }),
                 min: 6,
                 max: 20,
-                help: __('Select how many movies to display per page', 'letterboxd-wordpress')
+                help: __('Select how many movies to display per page', 'letterboxd-connect')
             }),
             createElement(SelectControl, {
-                label: __('Order By', 'letterboxd-wordpress'),
+                label: __('Order By', 'letterboxd-connect'),
                 value: attributes.orderby,
                 options: orderByOptions,
                 onChange: (value) => setAttributes({ orderby: value })
             }),
             createElement(SelectControl, {
-                label: __('Order', 'letterboxd-wordpress'),
+                label: __('Order', 'letterboxd-connect'),
                 value: attributes.order,
                 options: orderOptions,
                 onChange: (value) => setAttributes({ order: value })
@@ -151,26 +151,26 @@ const EditMovieGrid = ({ attributes, setAttributes }) => {
         createElement(
             PanelBody,
             { 
-                title: __('Display Options', 'letterboxd-wordpress'),
+                title: __('Display Options', 'letterboxd-connect'),
                 initialOpen: true
             },
             createElement(ToggleControl, {
-                label: __('Show Director', 'letterboxd-wordpress'),
+                label: __('Show Director', 'letterboxd-connect'),
                 checked: attributes.showDirector,
                 onChange: (value) => setAttributes({ showDirector: value })
             }),
             createElement(ToggleControl, {
-                label: __('Show Rating', 'letterboxd-wordpress'),
+                label: __('Show Rating', 'letterboxd-connect'),
                 checked: attributes.showRating,
                 onChange: (value) => setAttributes({ showRating: value })
             }),
             createElement(ToggleControl, {
-                label: __('Show Streaming Link', 'letterboxd-wordpress'),
+                label: __('Show Streaming Link', 'letterboxd-connect'),
                 checked: attributes.showStreamingLink,
                 onChange: (value) => setAttributes({ showStreamingLink: value })
             }),
             createElement(ToggleControl, {
-                label: __('Show External Links', 'letterboxd-wordpress'),
+                label: __('Show External Links', 'letterboxd-connect'),
                 checked: attributes.showExternalLinks,
                 onChange: (value) => setAttributes({ showExternalLinks: value })
             })
@@ -202,7 +202,7 @@ const EditMovieGrid = ({ attributes, setAttributes }) => {
                 attributes: attributes,
                 onError: (err) => {
                     console.error('Movie Grid Error:', err);
-                    setError(err.message || __('Error loading movies', 'letterboxd-wordpress'));
+                    setError(err.message || __('Error loading movies', 'letterboxd-connect'));
                 },
                 onBeforeChange: () => {
                     setIsLoading(true);
@@ -230,13 +230,13 @@ const EditMovieGrid = ({ attributes, setAttributes }) => {
 
 // Register the block
 registerBlockType(BLOCK_NAME, {
-    title: __('Movie Grid', 'letterboxd-wordpress'),
+    title: __('Movie Grid', 'letterboxd-connect'),
     icon: 'video-alt2',
     category: 'letterboxd-blocks',
     keywords: [
-        __('movies', 'letterboxd-wordpress'),
-        __('letterboxd', 'letterboxd-wordpress'),
-        __('grid', 'letterboxd-wordpress')
+        __('movies', 'letterboxd-connect'),
+        __('letterboxd', 'letterboxd-connect'),
+        __('grid', 'letterboxd-connect')
     ],
     supports: {
         align: ['wide', 'full'],
@@ -299,13 +299,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const observer = new MutationObserver((mutations) => {
         const hasRemovedGrid = mutations.some(mutation =>
             Array.from(mutation.removedNodes).some(
-                (node) => node.classList && node.classList.contains('wp-block-letterboxd-wordpress-movie-grid')
+                (node) => node.classList && node.classList.contains('wp-block-letterboxd-connect-movie-grid')
             )
         );
 
         if (hasRemovedGrid) {
             const styleElement = document.getElementById('letterboxd-movie-grid-editor-styles');
-            if (styleElement && !document.querySelector('.wp-block-letterboxd-wordpress-movie-grid')) {
+            if (styleElement && !document.querySelector('.wp-block-letterboxd-connect-movie-grid')) {
                 styleElement.remove();
             }
         }

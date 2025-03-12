@@ -2,7 +2,7 @@
 /**
  * Class for handling automated imports from Letterboxd
  *
- * @package letterboxd-wordpress
+ * @package letterboxd-connect
  * @since 1.0.0
  */
 
@@ -83,7 +83,7 @@ class Letterboxd_Auto_Import {
         $is_settings_page =
             is_admin() &&
             isset($_GET["page"]) &&
-            $_GET["page"] === "letterboxd-wordpress";
+            $_GET["page"] === "letterboxd-connect";
         $is_cron_run = defined("DOING_CRON") && DOING_CRON;
         $is_rest_request = defined("REST_REQUEST") && REST_REQUEST;
 
@@ -117,7 +117,7 @@ class Letterboxd_Auto_Import {
             // Check if we're on our settings page
             $is_settings_page =
                 isset($_GET["page"]) &&
-                $_GET["page"] === "letterboxd-wordpress";
+                $_GET["page"] === "letterboxd-connect";
 
             // Only register these hooks on our settings page
             if ($is_settings_page) {
@@ -191,9 +191,9 @@ class Letterboxd_Auto_Import {
 
         add_settings_section(
             "letterboxd_auto_import_section",
-            __("Auto-Import Settings", "letterboxd-wordpress"),
+            __("Auto-Import Settings", "letterboxd-connect"),
             [$this, "render_settings_section"],
-            "letterboxd-wordpress"
+            "letterboxd-connect"
         );
 
         $this->register_settings_fields();
@@ -216,15 +216,15 @@ class Letterboxd_Auto_Import {
     private function register_settings_fields(): void {
         $fields = [
             "frequency" => [
-                "title" => __("Check for New Movies", "letterboxd-wordpress"),
+                "title" => __("Check for New Movies", "letterboxd-connect"),
                 "callback" => "render_frequency_field"
             ],
             "notifications" => [
-                "title" => __("Email Notifications", "letterboxd-wordpress"),
+                "title" => __("Email Notifications", "letterboxd-connect"),
                 "callback" => "render_notifications_field"
             ],
             "status" => [
-                "title" => __("Import Status", "letterboxd-wordpress"),
+                "title" => __("Import Status", "letterboxd-connect"),
                 "callback" => "render_status_field"
             ]
         ];
@@ -234,7 +234,7 @@ class Letterboxd_Auto_Import {
                 "letterboxd_auto_import_{$id}",
                 $field["title"],
                 [$this, $field["callback"]],
-                "letterboxd-wordpress",
+                "letterboxd-connect",
                 "letterboxd_auto_import_section"
             );
         }
@@ -247,7 +247,7 @@ class Letterboxd_Auto_Import {
         echo "<p>" .
             esc_html__(
                 "Configure how often the plugin should check for new movies in your Letterboxd feed.",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ) .
             "</p>";
     }
@@ -280,7 +280,7 @@ class Letterboxd_Auto_Import {
             checked($this->cached_options["notifications"], true, false),
             esc_html__(
                 "Send email notifications when new movies are imported",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             )
         );
     }
@@ -295,7 +295,7 @@ class Letterboxd_Auto_Import {
             echo "<p>" .
                 esc_html__(
                     "The import will run for the first time after the settings are configured.",
-                    "letterboxd-wordpress"
+                    "letterboxd-connect"
                 ) .
                 "</p>";
             return;
@@ -317,11 +317,13 @@ class Letterboxd_Auto_Import {
             if ($timestamp) {
                 printf(
                     '<p class="time-wrap"><span class="status-label">%s:</span> <span class="status-time">%s</span></p>',
-                    esc_html__($label, "letterboxd-wordpress"),
+                    esc_html($label),
                     esc_html(
-                        human_time_diff($timestamp, $current_time) .
-                            " " .
-                            __("ago", "letterboxd-wordpress")
+                        sprintf(
+                            /* translators: %s: Human-readable time difference */
+                            __('%s ago', 'letterboxd-connect'),
+                            human_time_diff($timestamp, $current_time)
+                        )
                     )
                 );
             }
@@ -332,11 +334,11 @@ class Letterboxd_Auto_Import {
         if ($next_check) {
             printf(
                 '<p class="time-wrap"><span class="status-label">%s:</span> <span class="status-time">%s</span></p>',
-                esc_html__("Next check scheduled", "letterboxd-wordpress"),
+                esc_html__("Next check scheduled", "letterboxd-connect"),
                 esc_html(
                     human_time_diff($current_time, $next_check) .
                         " " .
-                        __("from now", "letterboxd-wordpress")
+                        __("from now", "letterboxd-connect")
                 )
             );
         }
@@ -554,21 +556,25 @@ class Letterboxd_Auto_Import {
     private function send_notification(array $result): void {
         $site_name = get_bloginfo("name");
         $admin_email = get_option("admin_email");
-
+    
+        // translators: %s: Website name
         $subject = sprintf(
             "[%s] %s",
             $site_name,
-            __("New movies imported from Letterboxd", "letterboxd-wordpress")
+            // translators: This is the email subject for new movie imports
+            __("New movies imported from Letterboxd", "letterboxd-connect")
         );
-
+        
+        // translators: %d is the number of imported movies
         $message = sprintf(
+            // translators: %d is the number of imported movies
             __(
                 "The Letterboxd importer has just imported %d new movie(s) to your website.",
-                "letterboxd-wordpress"
+                "letterboxd-connect"
             ),
             $result["imported"]
         );
-
+    
         wp_mail($admin_email, $subject, $message);
     }
 
@@ -612,7 +618,7 @@ class Letterboxd_Auto_Import {
                 '<div class="notice notice-error is-dismissible"><p>%s: %s</p></div>',
                 esc_html__(
                     "Last import attempt failed",
-                    "letterboxd-wordpress"
+                    "letterboxd-connect"
                 ),
                 esc_html($log[0]["message"])
             );
@@ -628,7 +634,7 @@ class Letterboxd_Auto_Import {
         }
 
         $screen = get_current_screen();
-        return $screen && $screen->id === "settings_page_letterboxd-wordpress";
+        return $screen && $screen->id === "settings_page_letterboxd-connect";
     }
 
     /**

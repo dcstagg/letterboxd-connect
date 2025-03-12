@@ -2,7 +2,7 @@
 /**
  * Error handling functionality for Letterboxd plugin
  *
- * @package letterboxd-wordpress
+ * @package letterboxd-connect
  */
 
 // Prevent direct access
@@ -71,7 +71,7 @@ trait LetterboxdErrorHandling {
         }
 
         $screen = get_current_screen();
-        if ($screen->id !== 'settings_page_letterboxd-wordpress') {
+        if ($screen->id !== 'settings_page_letterboxd-connect') {
             return;
         }
 

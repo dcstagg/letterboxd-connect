@@ -2,7 +2,7 @@
 /**
  * Interface for Letterboxd API service
  * 
- * @package letterboxd-wordpress
+ * @package letterboxd-connect
  * @since 1.1.0
  */
 interface LetterboxdApiServiceInterface {

@@ -1,5 +1,5 @@
 /**
- * Letterboxd to WordPress Settings Page JavaScript
+ * Letterboxd Connect Settings Page JavaScript
  */
 
 jQuery(document).ready(($) => {
