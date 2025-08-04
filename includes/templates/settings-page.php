@@ -42,9 +42,10 @@
 						);
 						?>
 						
-						<input type="hidden" name="username" value="<?php echo esc_attr($this->options["username"] ); ?>">
-						<input type="hidden" name="start_date" value="<?php echo esc_attr($this->options["start_date"]); ?>">
-						<input type="hidden" name="draft_status" value="<?php echo esc_attr($this->options["draft_status"] ? "1" : "0"); ?>">
+						<input type="hidden" name="letterboxd_wordpress_options[username]" value="<?php echo esc_attr($this->options["username"]); ?>">
+						<input type="hidden" name="letterboxd_wordpress_options[start_date]" value="<?php echo esc_attr($this->options["start_date"]); ?>">
+						<input type="hidden" name="letterboxd_wordpress_options[draft_status]" value="<?php echo esc_attr($this->options["draft_status"] ? "1" : "0"); ?>">
+
 						
 						<?php if (
 							empty(
@@ -83,6 +84,13 @@
 									"letterboxd-connect"
 								); ?></p>
 							</div>
+							<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+							    <?php wp_nonce_field('letterboxd_disconnect_tmdb'); ?>
+							    <input type="hidden" name="action" value="letterboxd_disconnect_tmdb">
+							    <button type="submit" class="button button-secondary">
+							        <?php esc_html_e('Disconnect TMDB', 'letterboxd-connect'); ?>
+							    </button>
+							</form>
 						</div>
 						<?php endif; ?>
 					</div>
@@ -93,7 +101,6 @@
 			<div id="settings-update-message" class="notice hidden"></div>
 			
 			<?php if ($active_tab === "advanced"): ?>
-				<!-- In the Advanced Settings Tab, after the TMDB API key section -->
 				<div class="tmdb-bulk-update-section">
 					<h3><?php esc_html_e(
 						"Update TMDB Data",

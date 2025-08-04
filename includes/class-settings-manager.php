@@ -156,6 +156,31 @@ class Letterboxd_Settings_Manager {
     }
 
     /**
+     * Handle TMDB Disconnections from the API
+     * 
+     */
+    public function handle_tmdb_disconnect(): void {
+        if (
+            !isset($_POST['_wpnonce']) ||
+            !wp_verify_nonce($_POST['_wpnonce'], 'letterboxd_disconnect_tmdb')
+        ) {
+            wp_die(__('Security check failed.', 'letterboxd-connect'));
+        }
+
+        if (!current_user_can('manage_options')) {
+            wp_die(__('You do not have permission to do this.', 'letterboxd-connect'));
+        }
+
+        $options = get_option(self::ADVANCED_OPTION_NAME, []);
+        unset($options['tmdb_session_id']);
+        update_option(self::ADVANCED_OPTION_NAME, $options);
+
+        wp_redirect(admin_url('options-general.php?page=letterboxd-connect&tab=advanced&tmdb_disconnected=true'));
+        exit;
+    }
+
+
+    /**
      * Set up WordPress hooks
      */
     private function setup_hooks(): void {
@@ -191,6 +216,8 @@ class Letterboxd_Settings_Manager {
             "handle_tmdb_data_update",
         ]);
         add_action("admin_init", [$this, "handle_tmdb_auth_callback"]);
+        add_action('admin_post_letterboxd_disconnect_tmdb', [$this, 'handle_tmdb_disconnect']);
+
     }
 
     /**
@@ -597,7 +624,8 @@ class Letterboxd_Settings_Manager {
                 $data["label"],
                 [$this, $data["callback"]],
                 $page,
-                $section
+                $section,
+                ['label_for' => $field]
             );
         }
     }
@@ -1270,12 +1298,14 @@ class Letterboxd_Settings_Manager {
     /**
      * Render username field
      */
-    public function render_username_field(): void {
+    public function render_username_field($args): void {
+        $field = $args['label_for'] ?? 'username';
         printf(
-            '<input type="text" name="%s[username]" value="%s" class="regular-text" required>
-            <p class="description">%s</p>',
+            '<input type="text" id="%1$s" name="%2$s[%1$s]" value="%3$s" class="regular-text" required>
+            <p class="description">%4$s</p>',
+            esc_attr($field),
             esc_attr(self::OPTION_NAME),
-            esc_attr($this->options["username"]),
+            esc_attr($this->options[$field] ?? ''),
             esc_html__("Your Letterboxd username", "letterboxd-connect")
         );
     }
@@ -1446,27 +1476,89 @@ class Letterboxd_Settings_Manager {
     }
 
     /**
-     * Method to create TMDB request token (stub implementation)
+     * Method to create TMDB request token
      *
      * @return WP_REST_Response
      */
     public function create_tmdb_request_token() {
+        $api_key = $this->advanced_options['tmdb_api_key'] ?? '';
+
+        if (empty($api_key)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('TMDB API key is missing.', 'letterboxd-connect'),
+            ], 400);
+        }
+
+        $result = $this->api_service->createTmdbRequestToken($api_key);
+
+        if (is_wp_error($result)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => $result->get_error_message(),
+            ], 400);
+        }
+
+        $request_token = $result['request_token'];
+
+        // Store the token temporarily for later use
+        set_transient('letterboxd_tmdb_request_token', $request_token, 15 * MINUTE_IN_SECONDS);
+
+        // ✅ Build the redirect URI to return to your plugin with the necessary flag
+        $redirect_url = add_query_arg([
+            'page' => 'letterboxd-connect',
+            'tab' => 'advanced',
+            'tmdb_auth' => 'callback',
+        ], admin_url('options-general.php'));
+
+        // ✅ Build full TMDB authorization URL
+        $auth_url = "https://www.themoviedb.org/authenticate/{$request_token}?redirect_to=" . urlencode($redirect_url);
+
         return new WP_REST_Response([
-            "success" => true,
-            "request_token" => "sample_token",
+            'success' => true,
+            'request_token' => $request_token,
+            'auth_url' => $auth_url,
         ]);
     }
 
+
     /**
-     * Method to create TMDB session (stub implementation)
+     * Method to create TMDB session
      *
      * @param WP_REST_Request $request
      * @return WP_REST_Response
      */
-    public function create_tmdb_session(WP_REST_Request $request) {
+    public function create_tmdb_session(WP_REST_Request $request): WP_REST_Response {
+        $request_token = $request->get_param('request_token');
+        $api_key = $this->advanced_options['tmdb_api_key'] ?? '';
+
+        if (empty($api_key)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('TMDB API key is missing.', 'letterboxd-connect'),
+            ], 400);
+        }
+
+        $result = $this->api_service->createTmdbSession($api_key, $request_token);
+
+        if (is_wp_error($result)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => $result->get_error_message(),
+            ], 400);
+        }
+
+        // Optional: Save session ID to advanced options
+        $this->advanced_options['tmdb_session_id'] = $result['session_id'];
+        update_option(self::ADVANCED_OPTION_NAME, $this->advanced_options);
+
+        // ✅ Stop the reload loop
+        delete_transient('letterboxd_tmdb_auth_callback');
+
         return new WP_REST_Response([
-            "success" => true,
-            "session_id" => "sample_session_id",
+            'success' => true,
+            'session_id' => $result['session_id'],
         ]);
     }
+
 }

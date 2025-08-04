@@ -251,7 +251,8 @@ jQuery(document).ready(($) => {
 			const data = {};
 			
 			// Always include username (required field)
-			data.username = letterboxdSettings.settings.username || '';
+			const usernameField = form.find('input[name="letterboxd_wordpress_options[username]"]');
+			data.username = usernameField.val() || '';
 			
 			// Include other fields
 			if (currentTab === 'general') {
