@@ -17,120 +17,102 @@
 	</h2>
 	
 	<div id="letterboxd-settings-container">
-		<form id="letterboxd-settings-form" action="options.php" method="post">
-			<?php wp_nonce_field(
-				self::NONCE_ACTION,
-				self::NONCE_NAME
-			); ?>
-			
-			<div id="tab-content-container">
-				<?php if ($active_tab === "general"): ?>
-					<!-- General Settings Tab -->
-					<div id="general-settings" class="tab-content active">
-						<?php
-						settings_fields(self::OPTION_GROUP);
-						do_settings_sections(self::MENU_SLUG);
-						?>
-					</div>
-				<?php else: ?>
-					<!-- Advanced Settings Tab -->
-					<div id="advanced-settings" class="tab-content active">
-						<?php
-						settings_fields(self::OPTION_GROUP);
-						do_settings_sections(
-							self::MENU_SLUG . "_advanced"
-						);
-						?>
-						
-						<input type="hidden" name="letterboxd_wordpress_options[username]" value="<?php echo esc_attr($this->options["username"]); ?>">
-						<input type="hidden" name="letterboxd_wordpress_options[start_date]" value="<?php echo esc_attr($this->options["start_date"]); ?>">
-						<input type="hidden" name="letterboxd_wordpress_options[draft_status]" value="<?php echo esc_attr($this->options["draft_status"] ? "1" : "0"); ?>">
 
-						
-						<?php if (
-							empty(
-								$this->advanced_options[
-									"tmdb_session_id"
-								]
-							)
-						): ?>
-						<div class="tmdb-auth-section">
-							<h3><?php esc_html_e(
-								"TMDB Authorization",
-								"letterboxd-connect"
-							); ?></h3>
-							<p><?php esc_html_e(
-								"Authorize this plugin to access your TMDB account for enhanced functionality.",
-								"letterboxd-connect"
-							); ?></p>
-							
-							<button type="button" id="tmdb-authorize-button" class="button button-secondary">
-								<?php esc_html_e(
-									"Authorize with TMDB",
-									"letterboxd-connect"
-								); ?>
-							</button>
-							<div id="tmdb-auth-status"></div>
-						</div>
-						<?php else: ?>
-						<div class="tmdb-auth-section">
-							<h3><?php esc_html_e(
-								"TMDB Authentication",
-								"letterboxd-connect"
-							); ?></h3>
-							<div class="notice notice-success inline">
-								<p><?php esc_html_e(
-									"Successfully authenticated with TMDB",
-									"letterboxd-connect"
-								); ?></p>
-							</div>
-							<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
-							    <?php wp_nonce_field('letterboxd_disconnect_tmdb'); ?>
-							    <input type="hidden" name="action" value="letterboxd_disconnect_tmdb">
-							    <button type="submit" class="button button-secondary">
-							        <?php esc_html_e('Disconnect TMDB', 'letterboxd-connect'); ?>
-							    </button>
-							</form>
-						</div>
-						<?php endif; ?>
-					</div>
-				<?php endif; ?>
-			</div>
-			
-			<div id="username-validation-message" class="notice hidden"></div>
-			<div id="settings-update-message" class="notice hidden"></div>
-			
-			<?php if ($active_tab === "advanced"): ?>
-				<div class="tmdb-bulk-update-section">
-					<h3><?php esc_html_e(
-						"Update TMDB Data",
-						"letterboxd-connect"
-					); ?></h3>
-					<p><?php esc_html_e(
-						"Update movie metadata from TMDB for all your existing movies.",
-						"letterboxd-connect"
-					); ?></p>
-					<?php $this->render_update_tmdb_button(); ?>
-				</div>
-			<?php endif; ?>
-			
-			<?php if ($active_tab === "general"): ?>
-			<div class="import-after-save">
-				<label for="letterboxd_run_import_trigger">
-					<input type="checkbox" id="letterboxd_run_import_trigger" name="letterboxd_run_import_trigger" value="1">
-					<span class="description"><?php esc_html_e(
-						"Run an import after save",
-						"letterboxd-connect"
-					); ?></span>
-				</label>
-			</div>
-			<?php endif; ?>
-			
-			<?php submit_button(
-				__("Save Settings", "letterboxd-connect"),
-				"primary",
-				"save-settings"
-			); ?>
-		</form>
+	    <!-- MAIN SETTINGS FORM -->
+	    <form id="letterboxd-settings-form" action="options.php" method="post">
+	        <?php wp_nonce_field(self::NONCE_ACTION, self::NONCE_NAME); ?>
+	        
+	        <div id="tab-content-container">
+	            
+	            <?php if ($active_tab === "general"): ?>
+
+	                <!-- General Settings Tab -->
+	                <div id="general-settings" class="tab-content active">
+	                    <?php
+	                    settings_fields(self::OPTION_GROUP);
+	                    do_settings_sections(self::MENU_SLUG);
+	                    ?>
+	                </div>
+
+	            <?php else: ?>
+
+	                <!-- Advanced Settings Tab -->
+	                <div id="advanced-settings" class="tab-content active">
+	                    <?php
+	                    settings_fields(self::OPTION_GROUP);
+	                    do_settings_sections(self::MENU_SLUG . "_advanced");
+	                    ?>
+	                    
+	                    <input type="hidden" name="letterboxd_wordpress_options[username]" value="<?php echo esc_attr($this->options["username"]); ?>">
+	                    <input type="hidden" name="letterboxd_wordpress_options[start_date]" value="<?php echo esc_attr($this->options["start_date"]); ?>">
+	                    <input type="hidden" name="letterboxd_wordpress_options[draft_status]" value="<?php echo esc_attr($this->options["draft_status"] ? "1" : "0"); ?>">
+	                </div>
+
+	            <?php endif; ?><!-- end advanced settings tab -->
+
+	        </div>
+	        
+	        <div id="username-validation-message" class="notice hidden"></div>
+	        <div id="settings-update-message" class="notice hidden"></div>
+	        
+	        <?php if ($active_tab === "advanced"): ?>
+	            <div class="tmdb-bulk-update-section">
+	                <h3><?php esc_html_e("Update TMDB Data", "letterboxd-connect"); ?></h3>
+	                <p><?php esc_html_e("Update movie metadata from TMDB for all your existing movies.", "letterboxd-connect"); ?></p>
+	                <?php $this->render_update_tmdb_button(); ?>
+	            </div>
+	        <?php endif; ?>
+	        
+	        <?php if ($active_tab === "general"): ?>
+	        <div class="import-after-save">
+	            <label for="letterboxd_run_import_trigger">
+	                <input type="checkbox" id="letterboxd_run_import_trigger" name="letterboxd_run_import_trigger" value="1">
+	                <span class="description"><?php esc_html_e("Run an import after save", "letterboxd-connect"); ?></span>
+	            </label>
+	        </div>
+	        <?php endif; ?>
+	        
+	        <?php submit_button(__("Save Settings", "letterboxd-connect"), "primary", "save-settings"); ?>
+	    </form>
+	    <!-- END MAIN SETTINGS FORM -->
+
+	    <!-- TMDB AUTH/DISCONNECT SECTION OUTSIDE THE MAIN FORM -->
+	    <?php if ($active_tab === "advanced"): ?>
+	        <?php $this->advanced_options = get_option(self::ADVANCED_OPTION_NAME, []); ?>
+
+	        <div class="tmdb-auth-section">
+	            <?php if (empty($this->advanced_options['tmdb_session_id'])) : ?>
+	                <h3><?php esc_html_e('TMDB Authorization', 'letterboxd-connect'); ?></h3>
+	                <p><?php esc_html_e('Authorize this plugin to access your TMDB account for enhanced functionality.', 'letterboxd-connect'); ?></p>
+	                
+	                <button type="button" id="tmdb-authorize-button" class="button button-secondary">
+	                    <?php esc_html_e('Authorize with TMDB', 'letterboxd-connect'); ?>
+	                </button>
+	                <div id="tmdb-auth-status"></div>
+	            <?php else: ?>
+	                <h3><?php esc_html_e('TMDB Authentication', 'letterboxd-connect'); ?></h3>
+	                <div class="notice notice-success inline">
+	                    <p><?php esc_html_e('Successfully authenticated with TMDB', 'letterboxd-connect'); ?></p>
+	                </div>
+	                
+	                <?php if (!empty($_GET['tmdb_disconnected']) && $_GET['tmdb_disconnected'] === 'true') : ?>
+	                    <div class="notice notice-success is-dismissible">
+	                        <p><?php esc_html_e('TMDB has been disconnected.', 'letterboxd-connect'); ?></p>
+	                    </div>
+	                <?php endif; ?>
+
+	                <!-- TMDB DISCONNECT FORM (outside the main form) -->
+	                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="tmdb-disconnect-form">
+	                    <?php wp_nonce_field('letterboxd_disconnect_tmdb'); ?>
+	                    <input type="hidden" name="action" value="letterboxd_disconnect_tmdb">
+	                    <button type="submit" class="button button-secondary">
+	                        <?php esc_html_e('Disconnect TMDB', 'letterboxd-connect'); ?>
+	                    </button>
+	                </form>
+	            <?php endif; ?>
+	        </div>
+	    <?php endif; ?>
+
 	</div>
+
 </div>

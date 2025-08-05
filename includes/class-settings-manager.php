@@ -136,6 +136,12 @@ class Letterboxd_Settings_Manager {
      */
     public function __construct(LetterboxdApiServiceInterface $api_service) {
         $this->api_service = $api_service;
+        // Check if we're on the settings page with a disconnect flag
+        if (is_admin() && isset($_GET['page']) && $_GET['page'] === self::MENU_SLUG) {
+            if (isset($_GET['tmdb_disconnected'])) {
+                wp_cache_delete(self::ADVANCED_OPTION_NAME, 'options');
+            }
+        }
         $this->load_options();
         $this->setup_hooks();
     }
@@ -160,6 +166,7 @@ class Letterboxd_Settings_Manager {
      * 
      */
     public function handle_tmdb_disconnect(): void {
+        // Verify nonce
         if (
             !isset($_POST['_wpnonce']) ||
             !wp_verify_nonce($_POST['_wpnonce'], 'letterboxd_disconnect_tmdb')
@@ -167,14 +174,25 @@ class Letterboxd_Settings_Manager {
             wp_die(__('Security check failed.', 'letterboxd-connect'));
         }
 
+        // Verify permissions
         if (!current_user_can('manage_options')) {
             wp_die(__('You do not have permission to do this.', 'letterboxd-connect'));
         }
 
+        // Get current options directly from database (not cached)
         $options = get_option(self::ADVANCED_OPTION_NAME, []);
+        
+        // Remove the session ID
         unset($options['tmdb_session_id']);
-        update_option(self::ADVANCED_OPTION_NAME, $options);
-
+        
+        // Update the database - use false for autoload to ensure it's saved
+        delete_option(self::ADVANCED_OPTION_NAME); // First delete to ensure clean save
+        add_option(self::ADVANCED_OPTION_NAME, $options, '', 'no'); // Then add fresh
+        
+        // Clear any WordPress object cache
+        wp_cache_delete(self::ADVANCED_OPTION_NAME, 'options');
+        
+        // Redirect with success parameter
         wp_redirect(admin_url('options-general.php?page=letterboxd-connect&tab=advanced&tmdb_disconnected=true'));
         exit;
     }
@@ -216,8 +234,8 @@ class Letterboxd_Settings_Manager {
             "handle_tmdb_data_update",
         ]);
         add_action("admin_init", [$this, "handle_tmdb_auth_callback"]);
+        
         add_action('admin_post_letterboxd_disconnect_tmdb', [$this, 'handle_tmdb_disconnect']);
-
     }
 
     /**
@@ -583,6 +601,15 @@ class Letterboxd_Settings_Manager {
      * Load and cache plugin options
      */
     private function load_options(): void {
+        // Force refresh if we just disconnected
+        $force_refresh = isset($_GET['tmdb_disconnected']) && $_GET['tmdb_disconnected'] === 'true';
+        
+        if ($force_refresh) {
+            // Clear any cached values
+            wp_cache_delete(self::OPTION_NAME, 'options');
+            wp_cache_delete(self::ADVANCED_OPTION_NAME, 'options');
+        }
+        
         $saved_options = get_option(self::OPTION_NAME, []);
         $this->options = wp_parse_args($saved_options, self::DEFAULT_OPTIONS);
 
@@ -682,15 +709,16 @@ class Letterboxd_Settings_Manager {
         if (!current_user_can("manage_options")) {
             return;
         }
-    
-        // Get active tab
-        $active_tab = isset($_GET["tab"])
-            ? sanitize_key($_GET["tab"])
-            : "general";
-        
-        // Include template instead of using output buffering
+
+        // Refresh options from database so the session removal is reflected
+        $this->advanced_options = get_option(self::ADVANCED_OPTION_NAME, []);
+        $this->options = get_option(self::OPTION_NAME, []);
+
+        $active_tab = isset($_GET["tab"]) ? sanitize_key($_GET["tab"]) : "general";
+
         include_once plugin_dir_path(__FILE__) . 'templates/settings-page.php';
     }
+
 
     /**
      * Render advanced settings description
