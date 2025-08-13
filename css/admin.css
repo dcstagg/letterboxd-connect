@@ -3,10 +3,13 @@
 * Admin Settings Screen
 **/
 
+#letterboxd-settings-container { padding-top: 24px; }
+
 /* A little table styling */
 #letterboxd-settings-form .form-table { margin: 2rem 0; }
 #letterboxd-settings-form .form-table tr { display: flex; align-items: center; margin: 2rem 0; }
 #letterboxd-settings-form .form-table tr:first-of-type { margin-top: 0; }
+#letterboxd-settings-form .form-table tr:last-of-type { margin-bottom: 0; }
 #letterboxd-settings-form .form-table th,
 #letterboxd-settings-form .form-table td { display: inline-flex; margin: 0; padding: 0; line-height: 1; }
 #letterboxd-settings-form .form-table span.description { font-size: 0.875rem; }
@@ -18,6 +21,7 @@
 input[type="text"] { width: 10rem; }
 input[type="date"] { width: 8rem; }
 input[type="text"]#tmdb_api_key { width: 20rem; }
+#tmdb-api-validation-result { display: inline-block; margin-left: 1rem; }
 
 #advanced-settings .form-table td { gap: 0.5rem; }
 .tmdb-bulk-update-section a.button { display: inline-flex; align-items: center; gap: 0.25rem; }

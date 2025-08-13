@@ -40,7 +40,7 @@ function letterboxd_register_block_assets() {
     $plugin_url = plugin_dir_url(LETTERBOXD_PLUGIN_FILE);
     
     if (!file_exists($plugin_dir . 'js/movie-block.js')) {
-        letterboxd_debug_log('Movie block JS file not found at: ' . $plugin_dir . 'js/movie-block.js', 'Block_Assets');
+        // letterboxd_debug_log('Movie block JS file not found at: ' . $plugin_dir . 'js/movie-block.js', 'Block_Assets');
         return;
     }
     

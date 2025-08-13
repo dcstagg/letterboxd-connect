@@ -738,9 +738,7 @@ class Letterboxd_Movie_Post_Type {
         $file = wp_remote_get($url);
 
         if (is_wp_error($file)) {
-            letterboxd_debug_log(
-                "Failed to fetch poster: " . $file->get_error_message()
-            );
+            // letterboxd_debug_log( "Failed to fetch poster: " . $file->get_error_message() );
             return false;
         }
 
@@ -759,7 +757,7 @@ class Letterboxd_Movie_Post_Type {
 
         $attach_id = wp_insert_attachment($attachment, $filepath, $post_id);
         if ($attach_id === 0) {
-            letterboxd_debug_log("Failed to create attachment for poster");
+            // letterboxd_debug_log("Failed to create attachment for poster");
             return false;
         }
 

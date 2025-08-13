@@ -1,118 +1,83 @@
 <div class="wrap">
-	<h1><?php echo esc_html(get_admin_page_title()); ?></h1>
+	<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 	
 	<h2 class="nav-tab-wrapper">
-		<a href="?page=<?php echo esc_attr(self::MENU_SLUG); ?>&tab=general" class="nav-tab <?php echo esc_attr($active_tab === "general" ? "nav-tab-active" : ""); ?>">
-			<?php esc_html_e(
-				"General Settings",
-				"letterboxd-connect"
-			); ?>
+		<a href="?page=<?php echo esc_attr( self::MENU_SLUG ); ?>&tab=general" class="nav-tab <?php echo esc_attr( $active_tab === 'general' ? 'nav-tab-active' : '' ); ?>">
+			<?php esc_html_e( 'General Settings', 'letterboxd-connect' ); ?>
 		</a>
-		<a href="?page=<?php echo esc_attr(self::MENU_SLUG); ?>&tab=advanced" class="nav-tab <?php echo esc_attr($active_tab === "advanced" ? "nav-tab-active" : ""); ?>">
-			<?php esc_html_e(
-				"Advanced Settings",
-				"letterboxd-connect"
-			); ?>
+		<a href="?page=<?php echo esc_attr( self::MENU_SLUG ); ?>&tab=advanced" class="nav-tab <?php echo esc_attr( $active_tab === 'advanced' ? 'nav-tab-active' : '' ); ?>">
+			<?php esc_html_e( 'Advanced Settings', 'letterboxd-connect' ); ?>
+		</a>
+		<a href="?page=<?php echo esc_attr( self::MENU_SLUG ); ?>&tab=csv_import" class="nav-tab <?php echo esc_attr( $active_tab === 'csv_import' ? 'nav-tab-active' : '' ); ?>">
+			<?php esc_html_e( 'CSV Import', 'letterboxd-connect' ); ?>
 		</a>
 	</h2>
-	
+
 	<div id="letterboxd-settings-container">
 
-	    <!-- MAIN SETTINGS FORM -->
-	    <form id="letterboxd-settings-form" action="options.php" method="post">
-	        <?php wp_nonce_field(self::NONCE_ACTION, self::NONCE_NAME); ?>
-	        
-	        <div id="tab-content-container">
-	            
-	            <?php if ($active_tab === "general"): ?>
+		<?php if ( $active_tab === 'csv_import' ): ?>
 
-	                <!-- General Settings Tab -->
-	                <div id="general-settings" class="tab-content active">
-	                    <?php
-	                    settings_fields(self::OPTION_GROUP);
-	                    do_settings_sections(self::MENU_SLUG);
-	                    ?>
-	                </div>
+			<form
+				id="letterboxd-csv-import-form"
+				action="<?php echo esc_url( admin_url( 'admin-post.php?action=letterboxd_csv_import' ) ); ?>"
+				method="post"
+				enctype="multipart/form-data"
+			>
+				<?php wp_nonce_field( self::NONCE_ACTION, self::NONCE_NAME ); ?>
 
-	            <?php else: ?>
+				<table class="form-table">
+					<tr>
+						<th scope="row">
+							<label for="letterboxd_csv_file">
+								<?php _e( 'Letterboxd export', 'letterboxd-connect' ); ?>
+							</label>
+						</th>
+						<td>
+							<input
+								type="file"
+								name="letterboxd_csv_file"
+								id="letterboxd_csv_file"
+								accept=".zip,.csv"
+								required
+							>
+							<p class="description">
+								<?php _e( 'Upload your Letterboxd export: either the ZIP or the watched/diary CSV.', 'letterboxd-connect' ); ?>
+							</p>
+						</td>
+					</tr>
+				</table>
 
-	                <!-- Advanced Settings Tab -->
-	                <div id="advanced-settings" class="tab-content active">
-	                    <?php
-	                    settings_fields(self::OPTION_GROUP);
-	                    do_settings_sections(self::MENU_SLUG . "_advanced");
-	                    ?>
-	                    
-	                    <input type="hidden" name="letterboxd_wordpress_options[username]" value="<?php echo esc_attr($this->options["username"]); ?>">
-	                    <input type="hidden" name="letterboxd_wordpress_options[start_date]" value="<?php echo esc_attr($this->options["start_date"]); ?>">
-	                    <input type="hidden" name="letterboxd_wordpress_options[draft_status]" value="<?php echo esc_attr($this->options["draft_status"] ? "1" : "0"); ?>">
-	                </div>
+				<?php submit_button( __( 'Import from CSV', 'letterboxd-connect' ) ); ?>
+			</form>
 
-	            <?php endif; ?><!-- end advanced settings tab -->
+		<?php else: ?>
 
-	        </div>
-	        
-	        <div id="username-validation-message" class="notice hidden"></div>
-	        <div id="settings-update-message" class="notice hidden"></div>
-	        
-	        <?php if ($active_tab === "advanced"): ?>
-	            <div class="tmdb-bulk-update-section">
-	                <h3><?php esc_html_e("Update TMDB Data", "letterboxd-connect"); ?></h3>
-	                <p><?php esc_html_e("Update movie metadata from TMDB for all your existing movies.", "letterboxd-connect"); ?></p>
-	                <?php $this->render_update_tmdb_button(); ?>
-	            </div>
-	        <?php endif; ?>
-	        
-	        <?php if ($active_tab === "general"): ?>
-	        <div class="import-after-save">
-	            <label for="letterboxd_run_import_trigger">
-	                <input type="checkbox" id="letterboxd_run_import_trigger" name="letterboxd_run_import_trigger" value="1">
-	                <span class="description"><?php esc_html_e("Run an import after save", "letterboxd-connect"); ?></span>
-	            </label>
-	        </div>
-	        <?php endif; ?>
-	        
-	        <?php submit_button(__("Save Settings", "letterboxd-connect"), "primary", "save-settings"); ?>
-	    </form>
-	    <!-- END MAIN SETTINGS FORM -->
+			<form id="letterboxd-settings-form" action="options.php" method="post">
+				<?php wp_nonce_field( self::NONCE_ACTION, self::NONCE_NAME ); ?>
 
-	    <!-- TMDB AUTH/DISCONNECT SECTION OUTSIDE THE MAIN FORM -->
-	    <?php if ($active_tab === "advanced"): ?>
-	        <?php $this->advanced_options = get_option(self::ADVANCED_OPTION_NAME, []); ?>
+				<?php if ( $active_tab === 'general' ): ?>
+					<?php
+					settings_fields( self::OPTION_GROUP );
+					do_settings_sections( self::MENU_SLUG );
+					?>
+					<div class="import-after-save">
+						<label for="letterboxd_run_import_trigger">
+							<input type="checkbox" id="letterboxd_run_import_trigger" name="letterboxd_run_import_trigger" value="1">
+							<span class="description"><?php esc_html_e( 'Run an import after save', 'letterboxd-connect' ); ?></span>
+						</label>
+					</div>
+				<?php else: ?>
+					<?php
+					settings_fields( self::OPTION_GROUP );
+					do_settings_sections( self::MENU_SLUG . '_advanced' );
+					?>
+					<?php $this->render_update_tmdb_button(); ?>
+				<?php endif; ?>
 
-	        <div class="tmdb-auth-section">
-	            <?php if (empty($this->advanced_options['tmdb_session_id'])) : ?>
-	                <h3><?php esc_html_e('TMDB Authorization', 'letterboxd-connect'); ?></h3>
-	                <p><?php esc_html_e('Authorize this plugin to access your TMDB account for enhanced functionality.', 'letterboxd-connect'); ?></p>
-	                
-	                <button type="button" id="tmdb-authorize-button" class="button button-secondary">
-	                    <?php esc_html_e('Authorize with TMDB', 'letterboxd-connect'); ?>
-	                </button>
-	                <div id="tmdb-auth-status"></div>
-	            <?php else: ?>
-	                <h3><?php esc_html_e('TMDB Authentication', 'letterboxd-connect'); ?></h3>
-	                <div class="notice notice-success inline">
-	                    <p><?php esc_html_e('Successfully authenticated with TMDB', 'letterboxd-connect'); ?></p>
-	                </div>
-	                
-	                <?php if (!empty($_GET['tmdb_disconnected']) && $_GET['tmdb_disconnected'] === 'true') : ?>
-	                    <div class="notice notice-success is-dismissible">
-	                        <p><?php esc_html_e('TMDB has been disconnected.', 'letterboxd-connect'); ?></p>
-	                    </div>
-	                <?php endif; ?>
+				<?php submit_button( __( 'Save Settings', 'letterboxd-connect' ), 'primary', 'save-settings' ); ?>
+			</form>
 
-	                <!-- TMDB DISCONNECT FORM (outside the main form) -->
-	                <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="tmdb-disconnect-form">
-	                    <?php wp_nonce_field('letterboxd_disconnect_tmdb'); ?>
-	                    <input type="hidden" name="action" value="letterboxd_disconnect_tmdb">
-	                    <button type="submit" class="button button-secondary">
-	                        <?php esc_html_e('Disconnect TMDB', 'letterboxd-connect'); ?>
-	                    </button>
-	                </form>
-	            <?php endif; ?>
-	        </div>
-	    <?php endif; ?>
+		<?php endif; ?>
 
 	</div>
-
 </div>

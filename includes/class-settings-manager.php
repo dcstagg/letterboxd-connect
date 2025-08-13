@@ -10,7 +10,8 @@ if (!defined("ABSPATH")) {
     exit();
 }
 
-class Letterboxd_Settings_Manager {
+class Letterboxd_Settings_Manager
+{
     use LetterboxdSecurity;
 
     /**
@@ -35,6 +36,8 @@ class Letterboxd_Settings_Manager {
     private const AJAX_ACTION = "letterboxd_ajax_action";
     private const REST_NAMESPACE = "letterboxd-connect/v1";
     private const ADVANCED_OPTION_NAME = "letterboxd_wordpress_advanced_options";
+    private const PROGRESS_TTL_RUNNING  = DAY_IN_SECONDS;
+    private const PROGRESS_TTL_COMPLETE = 30 * MINUTE_IN_SECONDS;
 
     /**
      * Letterboxd username constraints
@@ -134,14 +137,9 @@ class Letterboxd_Settings_Manager {
      *
      * @param LetterboxdApiServiceInterface $api_service API service for external operations
      */
-    public function __construct(LetterboxdApiServiceInterface $api_service) {
+    public function __construct(LetterboxdApiServiceInterface $api_service)
+    {
         $this->api_service = $api_service;
-        // Check if we're on the settings page with a disconnect flag
-        if (is_admin() && isset($_GET['page']) && $_GET['page'] === self::MENU_SLUG) {
-            if (isset($_GET['tmdb_disconnected'])) {
-                wp_cache_delete(self::ADVANCED_OPTION_NAME, 'options');
-            }
-        }
         $this->load_options();
         $this->setup_hooks();
     }
@@ -153,7 +151,7 @@ class Letterboxd_Settings_Manager {
      * @return Letterboxd_Settings_Manager
      */
     public static function get_instance(
-        LetterboxdApiServiceInterface $api_service
+        LetterboxdApiServiceInterface $api_service,
     ) {
         if (null === self::$instance) {
             self::$instance = new self($api_service);
@@ -162,46 +160,10 @@ class Letterboxd_Settings_Manager {
     }
 
     /**
-     * Handle TMDB Disconnections from the API
-     * 
-     */
-    public function handle_tmdb_disconnect(): void {
-        // Verify nonce
-        if (
-            !isset($_POST['_wpnonce']) ||
-            !wp_verify_nonce($_POST['_wpnonce'], 'letterboxd_disconnect_tmdb')
-        ) {
-            wp_die(__('Security check failed.', 'letterboxd-connect'));
-        }
-
-        // Verify permissions
-        if (!current_user_can('manage_options')) {
-            wp_die(__('You do not have permission to do this.', 'letterboxd-connect'));
-        }
-
-        // Get current options directly from database (not cached)
-        $options = get_option(self::ADVANCED_OPTION_NAME, []);
-        
-        // Remove the session ID
-        unset($options['tmdb_session_id']);
-        
-        // Update the database - use false for autoload to ensure it's saved
-        delete_option(self::ADVANCED_OPTION_NAME); // First delete to ensure clean save
-        add_option(self::ADVANCED_OPTION_NAME, $options, '', 'no'); // Then add fresh
-        
-        // Clear any WordPress object cache
-        wp_cache_delete(self::ADVANCED_OPTION_NAME, 'options');
-        
-        // Redirect with success parameter
-        wp_redirect(admin_url('options-general.php?page=letterboxd-connect&tab=advanced&tmdb_disconnected=true'));
-        exit;
-    }
-
-
-    /**
      * Set up WordPress hooks
      */
-    private function setup_hooks(): void {
+    private function setup_hooks(): void
+    {
         // Only set up hooks once to prevent duplicates
         if (self::$hooks_setup) {
             return;
@@ -213,11 +175,19 @@ class Letterboxd_Settings_Manager {
         add_action("admin_init", [$this, "register_settings"]);
         add_action("admin_enqueue_scripts", [$this, "enqueue_admin_assets"]);
         add_action("rest_api_init", [$this, "register_rest_routes"]);
+        add_action("admin_post_letterboxd_csv_import", [
+            $this,
+            "handle_csv_import",
+        ]);
+        add_action("wp_ajax_letterboxd_tmdb_progress", [
+            $this,
+            "ajax_tmdb_progress",
+        ]);
 
         // Add plugin action links
         add_filter(
             "plugin_action_links_" . plugin_basename(LETTERBOXD_PLUGIN_FILE),
-            [$this, "add_plugin_action_links"]
+            [$this, "add_plugin_action_links"],
         );
 
         // Add custom column hooks for the 'movie' post type
@@ -226,7 +196,7 @@ class Letterboxd_Settings_Manager {
             "manage_movie_posts_custom_column",
             [$this, "display_movie_columns"],
             10,
-            2
+            2,
         );
 
         add_action("admin_post_update_tmdb_data", [
@@ -234,8 +204,6 @@ class Letterboxd_Settings_Manager {
             "handle_tmdb_data_update",
         ]);
         add_action("admin_init", [$this, "handle_tmdb_auth_callback"]);
-        
-        add_action('admin_post_letterboxd_disconnect_tmdb', [$this, 'handle_tmdb_disconnect']);
     }
 
     /**
@@ -244,14 +212,16 @@ class Letterboxd_Settings_Manager {
      * @param string $route Route to register
      * @param array $args Route arguments
      */
-    private function register_route(string $route, array $args): void {
+    private function register_route(string $route, array $args): void
+    {
         register_rest_route(self::REST_NAMESPACE, $route, $args);
     }
 
     /**
      * Register REST API routes
      */
-    public function register_rest_routes(): void {
+    public function register_rest_routes(): void
+    {
         // Only register routes once
         if (self::$rest_routes_registered) {
             return;
@@ -261,9 +231,7 @@ class Letterboxd_Settings_Manager {
 
         // Only log if API service is missing - an actual issue
         if (!isset($this->api_service)) {
-            letterboxd_debug_log(
-                "ERROR: API Service not available when registering REST routes"
-            );
+            // letterboxd_debug_log( "ERROR: API Service not available when registering REST routes", );
             return;
         }
 
@@ -348,7 +316,7 @@ class Letterboxd_Settings_Manager {
      * @return WP_REST_Response
      */
     public function validate_tmdb_api(
-        WP_REST_Request $request
+        WP_REST_Request $request,
     ): WP_REST_Response {
         $api_key = $request->get_param("api_key");
         $validation_result = $this->api_service->checkTmdbApiKey($api_key);
@@ -359,7 +327,7 @@ class Letterboxd_Settings_Manager {
                     "success" => false,
                     "message" => $validation_result->get_error_message(),
                 ],
-                400
+                400,
             );
         }
 
@@ -368,7 +336,7 @@ class Letterboxd_Settings_Manager {
                 "success" => true,
                 "message" => __("API key is valid.", "letterboxd-connect"),
             ],
-            200
+            200,
         );
     }
 
@@ -377,7 +345,8 @@ class Letterboxd_Settings_Manager {
      *
      * @return bool True if authenticated
      */
-    private function is_tmdb_authenticated(): bool {
+    private function is_tmdb_authenticated(): bool
+    {
         return !empty($this->advanced_options["tmdb_api_key"]) &&
             !empty($this->advanced_options["tmdb_session_id"]);
     }
@@ -385,7 +354,8 @@ class Letterboxd_Settings_Manager {
     /**
      * Handle the authorization callback from TMDB
      */
-    public function handle_tmdb_auth_callback(): void {
+    public function handle_tmdb_auth_callback(): void
+    {
         // Store flag for script enqueuing
         if (isset($_GET["tmdb_auth"]) && $_GET["tmdb_auth"] === "callback") {
             $request_token = get_transient("letterboxd_tmdb_request_token");
@@ -394,7 +364,7 @@ class Letterboxd_Settings_Manager {
                 set_transient(
                     "letterboxd_tmdb_auth_callback",
                     $request_token,
-                    HOUR_IN_SECONDS
+                    HOUR_IN_SECONDS,
                 );
             } else {
                 add_settings_error(
@@ -402,8 +372,8 @@ class Letterboxd_Settings_Manager {
                     "tmdb_auth_error",
                     __(
                         "Authentication session expired. Please try again.",
-                        "letterboxd-connect"
-                    )
+                        "letterboxd-connect",
+                    ),
                 );
             }
         }
@@ -415,19 +385,18 @@ class Letterboxd_Settings_Manager {
      * @param WP_REST_Request $request
      * @return WP_REST_Response
      */
-    public function update_settings(
-        WP_REST_Request $request
-    ): WP_REST_Response {
+    public function update_settings(WP_REST_Request $request): WP_REST_Response
+    {
         if (!current_user_can("manage_options")) {
             return new WP_REST_Response(
                 [
                     "success" => false,
                     "message" => __(
                         "Insufficient permissions",
-                        "letterboxd-connect"
+                        "letterboxd-connect",
                     ),
                 ],
-                403
+                403,
             );
         }
 
@@ -450,7 +419,7 @@ class Letterboxd_Settings_Manager {
             // Get existing options to preserve tmdb_session_id
             $advanced_settings = get_option(self::ADVANCED_OPTION_NAME, []);
             $advanced_settings["tmdb_api_key"] = sanitize_text_field(
-                $posted_data["tmdb_api_key"]
+                $posted_data["tmdb_api_key"],
             );
             update_option(self::ADVANCED_OPTION_NAME, $advanced_settings);
         }
@@ -459,12 +428,12 @@ class Letterboxd_Settings_Manager {
         if (isset($posted_data["letterboxd_auto_import_options"])) {
             $auto_import_settings = [
                 "frequency" => isset(
-                    $posted_data["letterboxd_auto_import_options"]["frequency"]
+                    $posted_data["letterboxd_auto_import_options"]["frequency"],
                 )
                     ? sanitize_text_field(
                         $posted_data["letterboxd_auto_import_options"][
                             "frequency"
-                        ]
+                        ],
                     )
                     : "daily",
                 "notifications" => !empty(
@@ -481,14 +450,14 @@ class Letterboxd_Settings_Manager {
                 $update_result = update_option(
                     "letterboxd_auto_import_options",
                     $auto_import_settings,
-                    true
+                    true,
                 );
 
                 // Also update the import interval option for compatibility
                 update_option(
                     "letterboxd_import_interval",
                     $auto_import_settings["frequency"],
-                    true
+                    true,
                 );
 
                 set_transient("letterboxd_settings_just_updated", true, 60); // 60 seconds
@@ -496,10 +465,10 @@ class Letterboxd_Settings_Manager {
                 // Only update the schedule if the settings were successfully saved
                 if ($update_result) {
                     $auto_import = new Letterboxd_Auto_Import(
-                        Letterboxd_To_WordPress::get_instance()
+                        Letterboxd_To_WordPress::get_instance(),
                     );
                     $auto_import->update_import_schedule(
-                        $auto_import_settings["frequency"]
+                        $auto_import_settings["frequency"],
                     );
                 }
             }
@@ -512,18 +481,16 @@ class Letterboxd_Settings_Manager {
 
         // Only run an import if explicitly requested
         if ($run_import) {
-            letterboxd_debug_log(
-                "Manual import explicitly requested - running now"
-            );
+            // letterboxd_debug_log( "Manual import explicitly requested - running now", );
 
             // Use a do_action with a priority to ensure it runs after all settings are saved
             add_action(
                 "shutdown",
                 function () {
-                    letterboxd_debug_log("Running import on shutdown hook");
+                    // letterboxd_debug_log("Running import on shutdown hook");
                     do_action("letterboxd_check_and_import");
                 },
-                999
+                999,
             );
         }
 
@@ -532,10 +499,10 @@ class Letterboxd_Settings_Manager {
                 "success" => true,
                 "message" => __(
                     "Settings saved successfully.",
-                    "letterboxd-connect"
+                    "letterboxd-connect",
                 ),
             ],
-            200
+            200,
         );
     }
 
@@ -546,7 +513,7 @@ class Letterboxd_Settings_Manager {
      * @return WP_REST_Response
      */
     public function validate_username(
-        WP_REST_Request $request
+        WP_REST_Request $request,
     ): WP_REST_Response {
         $username = $request->get_param("username");
         $validation_result = $this->validate_letterboxd_username($username);
@@ -557,7 +524,7 @@ class Letterboxd_Settings_Manager {
                     "success" => false,
                     "message" => $validation_result->get_error_message(),
                 ],
-                400
+                400,
             );
         }
 
@@ -566,7 +533,7 @@ class Letterboxd_Settings_Manager {
                 "success" => true,
                 "message" => __("Username is valid.", "letterboxd-connect"),
             ],
-            200
+            200,
         );
     }
 
@@ -575,7 +542,8 @@ class Letterboxd_Settings_Manager {
      *
      * @return WP_REST_Response
      */
-    public function get_import_status(): WP_REST_Response {
+    public function get_import_status(): WP_REST_Response
+    {
         $interval = get_option("letterboxd_import_interval", "hourly");
         $last_import = get_option("letterboxd_last_import", 0);
 
@@ -593,43 +561,36 @@ class Letterboxd_Settings_Manager {
                 "next_check" => $next_check,
                 "imported_count" => get_option("letterboxd_imported_count", 0),
             ],
-            200
+            200,
         );
     }
 
     /**
      * Load and cache plugin options
      */
-    private function load_options(): void {
-        // Force refresh if we just disconnected
-        $force_refresh = isset($_GET['tmdb_disconnected']) && $_GET['tmdb_disconnected'] === 'true';
-        
-        if ($force_refresh) {
-            // Clear any cached values
-            wp_cache_delete(self::OPTION_NAME, 'options');
-            wp_cache_delete(self::ADVANCED_OPTION_NAME, 'options');
-        }
-        
+    private function load_options(): void
+    {
         $saved_options = get_option(self::OPTION_NAME, []);
         $this->options = wp_parse_args($saved_options, self::DEFAULT_OPTIONS);
 
         $saved_advanced_options = get_option(self::ADVANCED_OPTION_NAME, []);
         $this->advanced_options = wp_parse_args(
             $saved_advanced_options,
-            self::DEFAULT_ADVANCED_OPTIONS
+            self::DEFAULT_ADVANCED_OPTIONS,
         );
     }
 
     /**
      * Add settings page to WordPress admin
      */
-    public function add_settings_page(): void {
+    public function add_settings_page(): void
+    {
         add_options_page(
             __("Letterboxd Connect Settings", "letterboxd-connect"),
             __("Letterboxd Connect", "letterboxd-connect"),
             "manage_options",
             self::MENU_SLUG,
-            [$this, "render_settings_page"]
+            [$this, "render_settings_page"],
         );
     }
 
@@ -643,7 +604,7 @@ class Letterboxd_Settings_Manager {
     private function register_settings_field(
         string $section,
         array $fields,
-        string $page
+        string $page,
     ): void {
         foreach ($fields as $field => $data) {
             add_settings_field(
@@ -652,7 +613,6 @@ class Letterboxd_Settings_Manager {
                 [$this, $data["callback"]],
                 $page,
                 $section,
-                ['label_for' => $field]
             );
         }
     }
@@ -660,7 +620,8 @@ class Letterboxd_Settings_Manager {
     /**
      * Register plugin settings
      */
-    public function register_settings(): void {
+    public function register_settings(): void
+    {
         // Register settings
         register_setting(self::OPTION_GROUP, self::OPTION_NAME, [
             "type" => "object",
@@ -679,59 +640,218 @@ class Letterboxd_Settings_Manager {
             "letterboxd_wordpress_main",
             __("Main Settings", "letterboxd-connect"),
             [$this, "render_settings_description"],
-            self::MENU_SLUG
+            self::MENU_SLUG,
         );
 
         add_settings_section(
             "letterboxd_wordpress_advanced",
             __("Advanced Settings", "letterboxd-connect"),
             [$this, "render_advanced_settings_description"],
-            self::MENU_SLUG . "_advanced"
+            self::MENU_SLUG . "_advanced",
         );
 
         // Register fields
         $this->register_settings_field(
             "letterboxd_wordpress_main",
             self::SETTINGS_FIELDS,
-            self::MENU_SLUG
+            self::MENU_SLUG,
         );
         $this->register_settings_field(
             "letterboxd_wordpress_advanced",
             self::ADVANCED_SETTINGS_FIELDS,
-            self::MENU_SLUG . "_advanced"
+            self::MENU_SLUG . "_advanced",
         );
     }
 
     /**
-     * Render settings page content with tabs
-     */
-    public function render_settings_page(): void {
-        if (!current_user_can("manage_options")) {
-            return;
-        }
-
-        // Refresh options from database so the session removal is reflected
-        $this->advanced_options = get_option(self::ADVANCED_OPTION_NAME, []);
-        $this->options = get_option(self::OPTION_NAME, []);
-
-        $active_tab = isset($_GET["tab"]) ? sanitize_key($_GET["tab"]) : "general";
-
-        include_once plugin_dir_path(__FILE__) . 'templates/settings-page.php';
-    }
-
-
-    /**
      * Render advanced settings description
      */
-    public function render_advanced_settings_description(): void {
+    public function render_advanced_settings_description(): void
+    {
         ?>
         <p>
             <?php esc_html_e(
                 "Configure advanced settings for enhancing your Letterboxd imports with additional data sources.",
-                "letterboxd-connect"
+                "letterboxd-connect",
             ); ?>
         </p>
         <?php
+    }
+
+    public function ajax_tmdb_progress() {
+        if ( ! current_user_can('manage_options') ) {
+            wp_send_json_error(['message' => 'forbidden'], 403);
+        }
+    
+        check_ajax_referer('letterboxd_tmdb_progress');
+    
+        // Never let caches get in the way of polling responses
+        nocache_headers();
+    
+        $raw = get_transient('letterboxd_tmdb_update_results');
+        if ( ! is_array($raw) ) {
+            $raw = [];
+        }
+    
+        $total = (int) ($raw['total_posts']     ?? 0);
+        $done  = (int) ($raw['total_processed'] ?? 0);
+    
+        $percent = $total > 0 ? (int) round(($done / $total) * 100) : 0;
+        if ($percent > 100) { $percent = 100; } // just in case
+
+        $status = (string) ($raw['status'] ?? 'running');
+        if ($status === 'done' || $status === 'finished' || $status === 'success') {
+            $status = 'complete';
+        }
+    
+        $payload = [
+            'status'          => $status,
+            'total_posts'     => $total,
+            'total_processed' => $done,
+            'percent'         => $percent,
+        ];
+        
+        if (isset($raw['last_updated'])) {
+            $payload['last_updated'] = (int) $raw['last_updated'];
+        }
+        if (isset($raw['started_at'])) {
+            $payload['started_at'] = (int) $raw['started_at'];
+        }
+        if (isset($raw['run_id'])) {
+            $payload['run_id'] = (string) $raw['run_id'];
+        }
+        
+        if (isset($raw['summary'])) {
+            $payload['summary'] = (string) $raw['summary']; // pass-through for the notice
+        }
+    
+        wp_send_json_success($payload);
+    }
+
+
+    /**
+     * Handle the CSV/ZIP upload from the CSV Import tab.
+     * Persists a single notice via a plugin-scoped transient and redirects.
+     */
+    public function handle_csv_import(): void {
+        // Simple guard against accidental double-invocation in the same request.
+        static $running = false;
+        if ($running) {
+            return;
+        }
+        $running = true;
+
+        if (!current_user_can("manage_options")) {
+            wp_die(
+                __(
+                    "You do not have permission to do that.",
+                    "letterboxd-connect",
+                ),
+            );
+        }
+
+        check_admin_referer(self::NONCE_ACTION, self::NONCE_NAME);
+
+        $notice = null;
+
+        if (empty($_FILES["letterboxd_csv_file"]["tmp_name"])) {
+            // Build an error notice (don't call add_settings_error here).
+            $notice = [
+                [
+                    "setting" => self::MENU_SLUG,
+                    "code" => "csv_import_no_file",
+                    "message" => __(
+                        "No file was uploaded.",
+                        "letterboxd-connect",
+                    ),
+                    "type" => "error",
+                ],
+            ];
+        } else {
+            $tmp_path = $_FILES["letterboxd_csv_file"]["tmp_name"];
+
+            try {
+                $post_type_handler = new Letterboxd_Movie_Post_Type();
+                $importer = new Letterboxd_Importer($post_type_handler);
+                $options = get_option(self::OPTION_NAME, []);
+
+                $result = $importer->import_from_csv($tmp_path, $options);
+
+                $imported = (int) ($result["imported"] ?? 0);
+                $skipped_existing = (int) ($result["skipped_existing"] ?? 0);
+                $skipped_duplicates =
+                    (int) ($result["skipped_duplicates"] ?? 0);
+
+                $msg_parts = [];
+                $msg_parts[] = sprintf(
+                    _n(
+                        "Imported %d movie.",
+                        "Imported %d movies.",
+                        $imported,
+                        "letterboxd-connect",
+                    ),
+                    $imported,
+                );
+                $msg_parts[] = sprintf(
+                    _n(
+                        "Skipped %d existing.",
+                        "Skipped %d existing.",
+                        $skipped_existing,
+                        "letterboxd-connect",
+                    ),
+                    $skipped_existing,
+                );
+                $msg_parts[] = sprintf(
+                    _n(
+                        "Skipped %d duplicates in file.",
+                        "Skipped %d duplicates in file.",
+                        $skipped_duplicates,
+                        "letterboxd-connect",
+                    ),
+                    $skipped_duplicates,
+                );
+
+                $notice = [
+                    [
+                        "setting" => self::MENU_SLUG,
+                        "code" => "csv_import",
+                        "message" => implode(" ", array_filter($msg_parts)),
+                        "type" => "updated", // WP renders this as a green success notice
+                    ],
+                ];
+            } catch (Exception $e) {
+                $notice = [
+                    [
+                        "setting" => self::MENU_SLUG,
+                        "code" => "csv_import_error",
+                        "message" => esc_html($e->getMessage()),
+                        "type" => "error",
+                    ],
+                ];
+            }
+        }
+
+        // Persist exactly one copy of our notice for the next request.
+        if ($notice) {
+            set_transient("letterboxd_last_notice", $notice, 60);
+        }
+
+        // Avoid “headers already sent”
+        while (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        // Redirect back to CSV tab (no settings-updated param to prevent dupes)
+        wp_redirect(
+            add_query_arg(
+                [
+                    "page" => self::MENU_SLUG,
+                    "tab" => "csv_import",
+                ],
+                admin_url("options-general.php"),
+            ),
+        );
+        exit();
     }
 
     /**
@@ -754,11 +874,66 @@ class Letterboxd_Settings_Manager {
             esc_html__("Test Connection", "letterboxd-connect"),
             esc_html__(
                 "Your API key from The Movie Database:",
-                "letterboxd-connect"
+                "letterboxd-connect",
             ),
             esc_url("https://developer.themoviedb.org/docs/getting-started"),
-            esc_html__("Get one here", "letterboxd-connect")
+            esc_html__("Get one here", "letterboxd-connect"),
         );
+    }
+    
+    private function build_admin_notice_url(string $message, string $type = 'updated'): string {
+        return add_query_arg([
+            'page'            => self::MENU_SLUG,
+            'tab'             => 'advanced',
+            'tmdb_notice'     => rawurlencode($message),
+            'tmdb_notice_type'=> $type,
+        ], admin_url('options-general.php'));
+    }
+    
+    /**
+     * Centralized completion: mark progress complete (consistent TTL), clear legacy counters, redirect.
+     */
+    private function finish_and_redirect(
+        string $progress_key,
+        string $proc_total_key,
+        string $succ_total_key,
+        string $fail_total_key,
+        array  $progress,
+        string $summary
+    ): void {
+        $progress['status']       = 'complete';
+        $progress['last_updated'] = time();
+        $progress['summary']      = $summary; // <— new
+        
+        set_transient($progress_key, $progress, self::PROGRESS_TTL_COMPLETE);
+        
+        // Clear legacy counters
+        delete_transient($proc_total_key);
+        delete_transient($succ_total_key);
+        delete_transient($fail_total_key);
+        
+        // End the background request quietly (no redirect needed for AJAX UX)
+        while (ob_get_level()) { ob_end_clean(); }
+        status_header(204);
+        exit();
+    }
+    
+    /**
+     * Render settings page content with tabs
+     */
+    public function render_settings_page(): void {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+        
+        // Check for any leftover transients (just for logging)
+        $raw_notice = get_transient('letterboxd_last_notice');
+        if ($raw_notice) {
+            delete_transient('letterboxd_last_notice'); // Clean it up
+        }
+        
+        $active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'general';
+        include_once plugin_dir_path(__FILE__) . 'templates/settings-page.php';
     }
 
     /**
@@ -766,361 +941,463 @@ class Letterboxd_Settings_Manager {
      */
     public function render_update_tmdb_button(): void {
         $url = wp_nonce_url(
-            admin_url("admin-post.php?action=update_tmdb_data"),
-            "update_tmdb_data"
+            admin_url('admin-post.php?action=update_tmdb_data'),
+            'update_tmdb_data'
         );
-
+    
         echo '<div class="tmdb-update-section">';
         printf(
             '<a href="%s" class="button button-secondary tmdb-update-button">%s</a>',
             esc_url($url),
-            esc_html__(
-                "Update TMDB Data for All Movies",
-                "letterboxd-connect"
-            )
+            esc_html__('Update TMDB Data for All Movies', 'letterboxd-connect')
         );
-
+    
         echo '<p class="description">' .
             esc_html__(
-                "Fetch and update TMDB data for all existing movies. This process runs in batches to prevent timeouts.",
-                "letterboxd-connect"
+                'Fetch and update TMDB data for all existing movies. This process runs in batches to prevent timeouts.',
+                'letterboxd-connect'
             ) .
-            "</p>";
-
-        // Add progress bar container
+            '</p>';
+    
+        // Progress UI
         echo '<div id="tmdb-update-progress" class="tmdb-update-progress" style="display:none; margin-top: 10px;">';
-        echo '<div class="tmdb-progress-bar"><div class="tmdb-progress-inner"></div></div>';
-        echo '<p class="tmdb-progress-status">' .
-            esc_html__("Processing...", "letterboxd-connect") .
-            ' <span class="tmdb-progress-count">0</span>%</p>';
-        echo "</div>";
-
-        echo "</div>";
-
-        // Add inline styles for progress bar
+        echo   '<div class="tmdb-progress-bar"><div class="tmdb-progress-inner"></div></div>';
+        echo   '<p class="tmdb-progress-status"><span class="tmdb-progress-count">0</span>%</p>';
+        echo '</div>';
+    
+        // Single status line we toggle (no extra DOM gets appended elsewhere)
+        echo '<p id="tmdb-progress-message" class="description" style="display:none;">' .
+             esc_html__( 'Update in progress, please wait…', 'letterboxd-connect' ) .
+             '</p>';
+    
+        echo '</div>'; // .tmdb-update-section
+    
+        // Minimal inline styles
         echo '<style>
-            .tmdb-progress-bar {
-                height: 20px;
-                background-color: #f0f0f0;
-                border-radius: 4px;
-                overflow: hidden;
-                margin-bottom: 10px;
-            }
-            .tmdb-progress-inner {
-                height: 100%;
-                background-color: #0073aa;
-                width: 0%;
-                transition: width 0.3s ease;
-            }
-            .tmdb-progress-status {
-                font-size: 14px;
-                color: #555;
-            }
-            .tmdb-update-button.processing {
-                pointer-events: none;
-                opacity: 0.7;
-            }
+          .tmdb-progress-bar{height:20px;background:#fff;border-radius:4px;overflow:hidden;margin-bottom:10px}
+          .tmdb-progress-inner{height:100%;background:#0073aa;width:0%;transition:width .3s ease}
+          .tmdb-progress-status{font-size:14px;color:#555}
+          .tmdb-update-button.processing{pointer-events:none;opacity:.7}
         </style>';
-        // Add inline JavaScript for progress tracking
-        ?>
-        <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const updateButton = document.querySelector('.tmdb-update-button');
-            const progressDiv = document.getElementById('tmdb-update-progress');
-            const progressBar = document.querySelector('.tmdb-progress-inner');
-            const progressCount = document.querySelector('.tmdb-progress-count');
-            
-            if (updateButton && progressDiv) {
-                updateButton.addEventListener('click', function(e) {
-                    if (confirm('<?php echo esc_js(
-                        __(
-                            "This process may take several minutes depending on your number of movies. Continue?",
-                            "letterboxd-connect"
-                        )
-                    ); ?>')) {
-                        e.preventDefault();
-                        
-                        // Show progress bar and disable button
-                        progressDiv.style.display = 'block';
-                        updateButton.classList.add('processing');
-                        updateButton.innerHTML = '<?php echo esc_js(
-                            __("Processing...", "letterboxd-connect")
-                        ); ?>';
-                        
-                        // Function to update progress through AJAX
-                        const updateProgress = (currentBatch = 1) => {
-                            // Make AJAX request to start the process
-                            const url = e.target.href;
-                            
-                            // Add batch parameter to URL if this isn't the first batch
-                            const batchUrl = currentBatch > 1 
-                                ? url + '&batch=' + currentBatch 
-                                : url;
-                            
-                            fetch(batchUrl)
-                                .then(response => {
-                                    // Check if redirected to the next batch
-                                    const redirectUrl = response.url;
-                                    
-                                    if (redirectUrl.includes('batch=')) {
-                                        // Extract batch number
-                                        const batchMatch = redirectUrl.match(/batch=(\d+)/);
-                                        if (batchMatch && batchMatch[1]) {
-                                            const nextBatch = parseInt(batchMatch[1]);
-                                            
-                                            // Update progress
-                                            const progress = Math.min(90, (nextBatch - 1) * 10); // Estimate progress
-                                            progressBar.style.width = progress + '%';
-                                            progressCount.textContent = progress;
-                                            
-                                            // Continue with next batch
-                                            updateProgress(nextBatch);
-                                        }
-                                    } else if (redirectUrl.includes('updated=true')) {
-                                        // Process completed
-                                        progressBar.style.width = '100%';
-                                        progressCount.textContent = '100';
-                                        
-                                        // Reload page after short delay
-                                        setTimeout(() => {
-                                            window.location.reload();
-                                        }, 1000);
-                                    } else {
-                                        // Something went wrong, reload
-                                        window.location.reload();
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Error updating TMDB data:', error);
-                                    alert('<?php echo esc_js(
-                                        __(
-                                            "An error occurred. Please try again.",
-                                            "letterboxd-connect"
-                                        )
-                                    ); ?>');
-                                    window.location.reload();
-                                });
-                        };
-                        
-                        // Start the process
-                        updateProgress();
-                    }
-                });
+    
+        // Attach the JS AFTER 'letterboxd-settings'
+        ob_start(); ?>
+        (function () {
+          if (window.__lcTmdbWired) return; window.__lcTmdbWired = true;
+    
+          // Dismissible notice fallback
+          document.addEventListener('click', function (e) {
+            const btn = e.target.closest('.notice.is-dismissible .notice-dismiss');
+            if (btn) btn.closest('.notice')?.remove();
+          });
+    
+          const UPDATE_BASE    = <?php echo wp_json_encode( admin_url('admin-post.php') ); ?>;
+          const UPDATE_NONCE   = <?php echo wp_json_encode( wp_create_nonce('update_tmdb_data') ); ?>;
+          const UPDATE_URL     = UPDATE_BASE + '?action=update_tmdb_data&_wpnonce=' + encodeURIComponent(UPDATE_NONCE);
+          const AJAX_URL       = <?php echo wp_json_encode( admin_url('admin-ajax.php') ); ?>;
+          const PROGRESS_NONCE = <?php echo wp_json_encode( wp_create_nonce('letterboxd_tmdb_progress') ); ?>;
+    
+          window.ajaxurl = window.ajaxurl || AJAX_URL;
+    
+          function ready(fn){ if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+    
+          ready(function () {
+            const section       = document.querySelector('.tmdb-update-section');
+            const updateBtn     = section?.querySelector('.tmdb-update-button');
+            const progressWrap  = section?.querySelector('#tmdb-update-progress');
+            const barInner      = section?.querySelector('.tmdb-progress-inner');
+            const countEl       = section?.querySelector('.tmdb-progress-count');
+            const progressMsg   = section?.querySelector('#tmdb-progress-message');
+            const initialBtnText= updateBtn ? updateBtn.textContent : '';
+    
+            function setProgress(pct){
+              const c = Math.max(0, Math.min(100, pct|0));
+              if (barInner) barInner.style.width = c + '%';
+              if (countEl)  countEl.textContent  = c;
             }
-        });
-        </script>
+    
+            function injectNotice(type, text){
+              const host = document.getElementById('letterboxd-settings-container') || document.querySelector('.wrap') || document.body;
+              const notice = document.createElement('div');
+              notice.className = 'notice notice-' + type + ' is-dismissible';
+              notice.setAttribute('role', 'alert');
+              notice.innerHTML =
+                '<p>' + text + '</p>' +
+                '<button type="button" class="notice-dismiss"><span class="screen-reader-text"><?php echo esc_js( __( 'Dismiss this notice.', 'letterboxd-connect' ) ); ?></span></button>';
+              host.prepend(notice);
+            }
+    
+            function pollProgress(intervalHandle, runStartedAt){
+              const body = new URLSearchParams({ action:'letterboxd_tmdb_progress', _ajax_nonce: PROGRESS_NONCE });
+    
+              fetch(ajaxurl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body
+              })
+              .then(r => r.json())
+              .then(payload => {
+                if (!payload || !payload.success) return;
+                const d = payload.data || {};
+    
+                const skew = 5;
+                if (d.last_updated && runStartedAt && (d.last_updated + skew) < runStartedAt) return;
+    
+                const pct = ('percent' in d)
+                  ? d.percent
+                  : Math.round(((d.total_processed || 0) / Math.max(1, (d.total_posts || 0))) * 100);
+    
+                setProgress(pct);
+    
+                if (d.status === 'error') {
+                  clearInterval(intervalHandle);
+                  setProgress(0);
+    
+                  // restore button + remove spinner
+                  if (updateBtn){
+                    updateBtn.textContent = initialBtnText || <?php echo wp_json_encode( __('Update TMDB Data for All Movies','letterboxd-connect') ); ?>;
+                    updateBtn.classList.remove('processing');
+                    updateBtn.removeAttribute('aria-busy');
+                    updateBtn.disabled = false;
+                    const sp = updateBtn.querySelector('.spinner'); if (sp) sp.remove();
+                  }
+    
+                  if (progressWrap) progressWrap.style.display = 'none';
+                  if (progressMsg)  progressMsg.style.display  = 'none';
+    
+                  injectNotice('error', d.summary || <?php echo wp_json_encode( __('TMDB update failed.','letterboxd-connect') ); ?>);
+                  return;
+                }
+    
+                if (d.status === 'done' || d.status === 'complete' || pct >= 100) {
+                  clearInterval(intervalHandle);
+                  setProgress(100);
+    
+                  // restore button + remove spinner
+                  if (updateBtn){
+                    updateBtn.textContent = initialBtnText || <?php echo wp_json_encode( __('Update TMDB Data for All Movies','letterboxd-connect') ); ?>;
+                    updateBtn.classList.remove('processing');
+                    updateBtn.removeAttribute('aria-busy');
+                    updateBtn.disabled = false;
+                    const sp = updateBtn.querySelector('.spinner'); if (sp) sp.remove();
+                    updateBtn.focus();
+                  }
+    
+                  setTimeout(() => { if (progressWrap) progressWrap.style.display = 'none'; }, 200);
+                  if (progressMsg) progressMsg.style.display = 'none';
+    
+                  injectNotice('success', d.summary || <?php echo wp_json_encode( __('TMDB update completed!','letterboxd-connect') ); ?>);
+                  return;
+                }
+              })
+              .catch(() => {});
+            }
+    
+            if (updateBtn && progressWrap){
+              updateBtn.addEventListener('click', function(e){
+                if (!confirm(<?php echo wp_json_encode( __('This process may take several minutes depending on your number of movies. Continue?', 'letterboxd-connect') ); ?>)) return;
+                e.preventDefault();
+    
+                // remove any legacy message that might still be in the DOM from old JS
+                document.querySelectorAll('.tmdb-update-section .update-status').forEach(n => n.remove());
+    
+                // show UI + status
+                progressWrap.style.display = 'block';
+                if (progressMsg) progressMsg.style.display = 'block';
+    
+                // button busy state + spinner
+                updateBtn.classList.add('processing');
+                updateBtn.setAttribute('aria-busy', 'true');
+                updateBtn.disabled = true;
+                updateBtn.textContent = <?php echo wp_json_encode( __('Processing...','letterboxd-connect') ); ?>;
+    
+                let spinner = updateBtn.querySelector('.spinner');
+                if (!spinner) {
+                  spinner = document.createElement('span');
+                  spinner.className = 'spinner is-active';
+                  updateBtn.prepend(spinner);
+                }
+    
+                setProgress(0);
+                const runStartedAt = Math.floor(Date.now()/1000);
+    
+                fetch(UPDATE_URL, { credentials: 'same-origin' }).catch(() => {});
+                let handle;
+                setTimeout(() => {
+                  handle = setInterval(() => pollProgress(handle, runStartedAt), 1200);
+                  pollProgress(handle, runStartedAt);
+                }, 1200);
+              });
+            }
+          });
+        })();
         <?php
+        $inline = ob_get_clean();
+        wp_add_inline_script('letterboxd-settings', $inline, 'after');
     }
 
     /**
-     * Handle TMDB data update request
-     */
-    /**
-     * Handle TMDB data update request
+     * Handle TMDB data update request (stable total + offset paging, no cache flush)
      */
     public function handle_tmdb_data_update(): void {
-        // Verify nonce
-        if (
-            !isset($_GET["_wpnonce"]) ||
-            !wp_verify_nonce($_GET["_wpnonce"], "update_tmdb_data")
-        ) {
-            wp_die(esc_html__("Security check failed.", "letterboxd-connect"));
-        }
-
-        // Verify permissions
-        if (!current_user_can("manage_options")) {
-            wp_die(
-                esc_html__(
-                    "You do not have sufficient permissions to perform this action.",
-                    "letterboxd-connect"
-                )
-            );
-        }
-
-        // Tracking variables for the entire process
-        $processed_total =
-            (int) get_transient("letterboxd_tmdb_update_processed") ?: 0;
-        $updated_total =
-            (int) get_transient("letterboxd_tmdb_update_success") ?: 0;
-        $failed_total =
-            (int) get_transient("letterboxd_tmdb_update_failed") ?: 0;
-
-        // Get TMDB handler
-        $tmdb_handler = new Letterboxd_TMDB_Handler();
-
-        // Check if API key is configured
-        if (!$tmdb_handler->is_api_key_configured()) {
-            add_settings_error(
-                "letterboxd_messages",
-                "tmdb_api_missing",
-                __("TMDB API key is not configured.", "letterboxd-connect")
-            );
-            set_transient("settings_errors", get_settings_errors(), 30);
-            wp_redirect(
-                admin_url(
-                    "options-general.php?page=letterboxd-connect&tab=advanced&error=api_missing"
-                )
-            );
-            exit();
-        }
-
-        // Get batch size from request or use default
-        $batch_size = isset($_GET["batch_size"])
-            ? (int) $_GET["batch_size"]
-            : 20;
-        $batch_size = max(5, min(50, $batch_size)); // Ensure between 5-50
-
-        // Get batch number
-        $batch = isset($_GET["batch"]) ? (int) $_GET["batch"] : 1;
-
-        // Get advanced options for region
-        $options = get_option("letterboxd_wordpress_advanced_options", []);
-        $region = $options["streaming_region"] ?? "US";
-
-        // Get movies for this batch - use small memory limit
-        $args = [
-            "post_type" => "movie",
-            "posts_per_page" => $batch_size,
-            "paged" => $batch,
-            "orderby" => "date",
-            "order" => "DESC",
-            "fields" => "ids", // Only get IDs for efficiency
-            "no_found_rows" => true, // Don't calculate found rows for better performance
-            "update_post_meta_cache" => false, // Don't include post meta in query
-            "update_post_term_cache" => false, // Don't include term cache in query
-        ];
-
-        $query = new WP_Query($args);
-        $post_ids = $query->posts;
-        $found_posts = $query->found_posts;
-
-        // Process the batch
-        if (!empty($post_ids)) {
-            // Log start of operation
-            letterboxd_debug_log(
-                sprintf(
-                    "Starting TMDB data update batch %d with %d movies",
-                    $batch,
-                    count($post_ids)
-                )
-            );
-
-            // Use batch update method
-            $results = $tmdb_handler->batch_update_streaming_providers(
-                $post_ids,
-                $region
-            );
-
-            // Update tracking totals
-            $processed_total += count($post_ids);
-            $updated_total += $results["updated"];
-            $failed_total += $results["failed"];
-
-            // Store updated counts
-            set_transient(
-                "letterboxd_tmdb_update_processed",
-                $processed_total,
-                DAY_IN_SECONDS
-            );
-            set_transient(
-                "letterboxd_tmdb_update_success",
-                $updated_total,
-                DAY_IN_SECONDS
-            );
-            set_transient(
-                "letterboxd_tmdb_update_failed",
-                $failed_total,
-                DAY_IN_SECONDS
-            );
-
-            // Store results in transient for display
-            $prev_results = get_transient("letterboxd_tmdb_update_results") ?: [
-                "updated" => 0,
-                "failed" => 0,
-                "total_processed" => 0,
-                "total_posts" => $query->found_posts,
-            ];
-
-            $updated_results = [
-                "updated" => $prev_results["updated"] + $results["updated"],
-                "failed" => $prev_results["failed"] + $results["failed"],
-                "total_processed" =>
-                    $prev_results["total_processed"] + count($post_ids),
-                "total_posts" => $query->found_posts,
-            ];
-
-            set_transient(
-                "letterboxd_tmdb_update_results",
-                $updated_results,
-                DAY_IN_SECONDS
-            );
-
-            // Check if there are more items to process
-            if (
-                $updated_results["total_processed"] <
-                $updated_results["total_posts"]
-            ) {
-                // Explicitly clean up to free memory
-                $query = null;
-                $post_ids = null;
-                $results = null;
-                $prev_results = null;
-                $updated_results = null;
-
-                if (function_exists("wp_cache_flush")) {
-                    wp_cache_flush();
-                }
-
-                // Redirect to next batch
-                $next_batch_url = add_query_arg(
-                    [
-                        "action" => "update_tmdb_data",
-                        "_wpnonce" => wp_create_nonce("update_tmdb_data"),
-                        "batch" => $batch + 1,
-                        "batch_size" => $batch_size,
-                    ],
-                    admin_url("admin-post.php")
-                );
-
-                wp_redirect($next_batch_url);
-                exit();
+        
+        $nonce = '';
+        if (isset($_GET['_wpnonce'])) {
+            $nonce = (string) $_GET['_wpnonce'];
+        } elseif (isset($_GET['amp;_wpnonce'])) {
+            $nonce = (string) $_GET['amp;_wpnonce'];
+            // if (method_exists($this, 'letterboxd_debug_log')) {
+            //  $this->letterboxd_debug_log("[SECURITY] Received 'amp;_wpnonce' param; proceeding but URL encoding is wrong upstream.");
+            // }
+        } elseif (!empty($_SERVER['QUERY_STRING'])) {
+            if (preg_match('/(?:^|&)(?:amp;)?_wpnonce=([^&]+)/', (string) $_SERVER['QUERY_STRING'], $m)) {
+                $nonce = $m[1];
             }
         }
+    
+        if (empty($nonce) || !wp_verify_nonce($nonce, 'update_tmdb_data')) {
+            wp_die(esc_html__('Security check failed.', 'letterboxd-connect'));
+        }
+        if (!current_user_can('manage_options')) {
+            wp_die(esc_html__('You do not have sufficient permissions to perform this action.', 'letterboxd-connect'));
+        }
+        nocache_headers();
+    
+        $batch_size = isset($_GET['batch_size']) ? (int) $_GET['batch_size'] : 20;
+        $batch_size = max(5, min(50, $batch_size));
+        $batch      = isset($_GET['batch']) ? max(1, (int) $_GET['batch']) : 1;
+        $force_new  = isset($_GET['force']) && (string) $_GET['force'] === '1';
+    
+        $post_type     = apply_filters('letterboxd_tmdb_post_type', 'movie');
+        $post_statuses = apply_filters('letterboxd_tmdb_post_statuses', ['publish']);
+    
+        // $this->letterboxd_debug_log("[BATCH] Starting batch={$batch} size={$batch_size} post_type={$post_type} statuses=" . implode(',', (array) $post_statuses));
+    
+        $progress_key  = 'letterboxd_tmdb_update_results';
+        $proc_total_key= 'letterboxd_tmdb_update_processed';
+        $succ_total_key= 'letterboxd_tmdb_update_success';
+        $fail_total_key= 'letterboxd_tmdb_update_failed';
+    
+        // --- TMDB handler + region (check BEFORE touching transients) ---
+        $tmdb_handler = new Letterboxd_TMDB_Handler();
+        if (!$tmdb_handler->is_api_key_configured()) {
+            $error_message = __('TMDB API key is not configured.', 'letterboxd-connect');
+        
+            // Write an error state the poller can surface
+            set_transient('letterboxd_tmdb_update_results', [
+                'status'          => 'error',
+                'summary'         => $error_message,
+                'total_posts'     => 0,
+                'total_processed' => 0,
+                'last_updated'    => time(),
+            ], self::PROGRESS_TTL_COMPLETE);
+        
+            while (ob_get_level()) { ob_end_clean(); }
+            status_header(400);
+            echo esc_html($error_message);
+            exit();
+        }
+        $options = get_option('letterboxd_wordpress_advanced_options', []);
+        $region  = $options['streaming_region'] ?? 'US';
 
-        // Process completed - prepare summary message
-        $message = sprintf(
-            /* translators: 1: Number of processed items, 2: Number of updated items, 3: Number of failed items */
-            __(
-                "TMDB data update completed. Processed: %1\$d, Updated: %2\$d, Failed: %3\$d",
-                "letterboxd-connect"
-            ),
-            $processed_total,
-            $updated_total,
-            $failed_total
+        $progress = get_transient($progress_key);
+        $is_new_run = false;
+        if ($batch === 1) {
+            $is_new_run = $force_new || !is_array($progress) || (($progress['status'] ?? '') === 'complete');
+        }
+
+        if (!is_array($progress) || $is_new_run) {
+            // Fresh run: count posts once
+            $all_ids = get_posts([
+                'post_type'              => $post_type,
+                'post_status'            => $post_statuses,
+                'fields'                 => 'ids',
+                'posts_per_page'         => -1,
+                'orderby'                => 'date',
+                'order'                  => 'DESC',
+                'no_found_rows'          => true,
+                'update_post_meta_cache' => false,
+                'update_post_term_cache' => false,
+                'suppress_filters'       => true,
+            ]);
+            $total_posts = is_array($all_ids) ? count($all_ids) : 0;
+    
+            // Reset legacy counters only when starting a genuine new run
+            delete_transient($proc_total_key);
+            delete_transient($succ_total_key);
+            delete_transient($fail_total_key);
+    
+            $progress = [
+                'run_id'          => function_exists('wp_generate_uuid4') ? wp_generate_uuid4() : uniqid('tmdb_', true),
+                'status'          => 'running',
+                'updated'         => 0,
+                'failed'          => 0,
+                'total_processed' => 0,
+                'total_posts'     => $total_posts,
+                'batch'           => 1,
+                'batch_size'      => $batch_size,
+                'started_at'      => time(),
+                'last_updated'    => time(),
+            ];
+            set_transient($progress_key, $progress, self::PROGRESS_TTL_RUNNING);
+            // $this->letterboxd_debug_log("[PROGRESS] Initialized progress for batch 1; total_posts={$total_posts}");
+        } else {
+            $total_posts = (int) ($progress['total_posts'] ?? 0);
+        }
+    
+        // Legacy counters (optional elsewhere)
+        $processed_total = (int) (get_transient($proc_total_key) ?: 0);
+        $updated_total   = (int) (get_transient($succ_total_key) ?: 0);
+        $failed_total    = (int) (get_transient($fail_total_key) ?: 0);
+    
+        $offset = ($batch - 1) * $batch_size;
+    
+        // --- Finish early if past end or no posts ---
+        if ($total_posts === 0 || $offset >= $total_posts) {
+            $final      = is_array($progress) ? $progress : [];
+            $processed  = (int) ($final['total_processed'] ?? $processed_total);
+            $updated    = (int) ($final['updated']         ?? $updated_total);
+            $failed     = (int) ($final['failed']          ?? $failed_total);
+            $total      = (int) ($final['total_posts']     ?? $total_posts);
+            $started_at = (int) ($final['started_at']      ?? time());
+            $finished   = time();
+            $duration   = max(0, $finished - $started_at);
+    
+            $h = floor($duration / 3600);
+            $m = floor(($duration % 3600) / 60);
+            $s = $duration % 60;
+            $dur_str = $h ? sprintf('%dh %02dm %02ds', $h, $m, $s) : ($m ? sprintf('%dm %02ds', $m, $s) : sprintf('%ds', $s));
+            $pct = $total > 0 ? (int) round(($processed / $total) * 100) : 0;
+    
+            $summary = sprintf(__('TMDB update completed in %1$s — %2$d%% (%3$d/%4$d). Updated: %5$d • Failed: %6$d', 'letterboxd-connect'),
+                $dur_str, $pct, $processed, $total, $updated, $failed
+            );
+    
+            $final['last_updated'] = $finished;
+            $this->finish_and_redirect($progress_key, $proc_total_key, $succ_total_key, $fail_total_key, $final, $summary);
+        }
+    
+        // --- Query current slice ---
+        $query = new WP_Query([
+            'post_type'              => $post_type,
+            'post_status'            => $post_statuses,
+            'posts_per_page'         => $batch_size,
+            'offset'                 => $offset,
+            'orderby'                => 'date',
+            'order'                  => 'DESC',
+            'fields'                 => 'ids',
+            'no_found_rows'          => true,
+            'update_post_meta_cache' => false,
+            'update_post_term_cache' => false,
+            'suppress_filters'       => true,
+            'ignore_sticky_posts'    => true,
+        ]);
+        $post_ids = $query->posts ?: [];
+        // $this->letterboxd_debug_log("[BATCH] Slice offset={$offset} size={$batch_size} -> got " . count($post_ids) . " IDs");
+    
+        // Empty slice but not past end? Skip forward.
+        if (empty($post_ids)) {
+            // $this->letterboxd_debug_log("[BATCH] Empty slice but not past end; jumping to next batch.");
+            $next_url = add_query_arg([
+                'action'     => 'update_tmdb_data',
+                '_wpnonce'   => wp_create_nonce('update_tmdb_data'),
+                'batch'      => $batch + 1,
+                'batch_size' => $batch_size,
+                'run_id'     => $progress['run_id'] ?? '',
+            ], admin_url('admin-post.php'));
+            while (ob_get_level()) { ob_end_clean(); }
+            wp_safe_redirect($next_url);
+            exit();
+        }
+    
+        // --- Work ---
+        // letterboxd_debug_log(sprintf('Starting TMDB data update batch %d with %d movies', $batch, count($post_ids)));
+    
+        // $this->letterboxd_debug_log('[BATCH] Calling batch_update_movie_metadata...');
+        $metaRes = $tmdb_handler->batch_update_movie_metadata($post_ids, $region);
+        // $this->letterboxd_debug_log('[BATCH] metaRes: ' . wp_json_encode($metaRes));
+    
+        // $this->letterboxd_debug_log('[BATCH] Calling batch_update_streaming_providers...');
+        $provRes = $tmdb_handler->batch_update_streaming_providers($post_ids, $region);
+        // $this->letterboxd_debug_log('[BATCH] provRes: ' . wp_json_encode($provRes));
+    
+        // Verify first ID
+        $verify_id         = $post_ids[0];
+        $verify_tmdb_id    = get_post_meta($verify_id, 'tmdb_id', true);
+        $verify_tmdb_title = get_post_meta($verify_id, 'tmdb_title', true);
+        // $this->letterboxd_debug_log(sprintf('[VERIFY] Post %d read-back: tmdb_id=%s, tmdb_title=%s',
+        //     $verify_id,
+        //     $verify_tmdb_id !== '' ? $verify_tmdb_id : '(empty)',
+        //     $verify_tmdb_title !== '' ? $verify_tmdb_title : '(empty)'
+        // ));
+    
+        // Aggregate results
+        $updated_this = (int) ($metaRes['updated'] ?? 0) + (int) ($provRes['updated'] ?? 0);
+        $failed_this  = (int) ($metaRes['failed']  ?? 0) + (int) ($provRes['failed']  ?? 0);
+    
+        // Legacy counters
+        $processed_total += count($post_ids);
+        $updated_total   += $updated_this;
+        $failed_total    += $failed_this;
+        set_transient($proc_total_key, $processed_total, self::PROGRESS_TTL_RUNNING);
+        set_transient($succ_total_key, $updated_total,   self::PROGRESS_TTL_RUNNING);
+        set_transient($fail_total_key, $failed_total,    self::PROGRESS_TTL_RUNNING);
+    
+        // Update authoritative progress
+        $progress                 = get_transient($progress_key) ?: $progress; // keep existing fields
+        $progress['status']       = 'running';
+        $progress['updated']      = (int) ($progress['updated'] ?? 0) + $updated_this;
+        $progress['failed']       = (int) ($progress['failed']  ?? 0) + $failed_this;
+        $progress['total_processed'] = min($offset + count($post_ids), (int) $progress['total_posts']);
+        $progress['batch']        = $batch;
+        $progress['batch_size']   = $batch_size;
+        $progress['last_updated'] = time();
+        set_transient($progress_key, $progress, self::PROGRESS_TTL_RUNNING);
+        // $this->letterboxd_debug_log('[PROGRESS] Updated progress: ' . wp_json_encode($progress));
+    
+        // More to do?
+        $processed_so_far = $offset + count($post_ids);
+        $has_more = $processed_so_far < (int) $progress['total_posts'];
+    
+        if ($has_more) {
+            $next_url = add_query_arg([
+                'action'     => 'update_tmdb_data',
+                '_wpnonce'   => wp_create_nonce('update_tmdb_data'),
+                'batch'      => $batch + 1,
+                'batch_size' => $batch_size,
+                'run_id'     => $progress['run_id'] ?? '',
+            ], admin_url('admin-post.php'));
+            // $this->letterboxd_debug_log("[BATCH] Redirecting to next batch: {$next_url}");
+            while (ob_get_level()) { ob_end_clean(); }
+            wp_safe_redirect($next_url);
+            exit();
+        }
+    
+        // --- Finished (single path) ---
+        $finished   = time();
+        $processed  = (int) $progress['total_processed'];
+        $updated    = (int) $progress['updated'];
+        $failed     = (int) $progress['failed'];
+        $total      = (int) $progress['total_posts'];
+        $started_at = (int) ($progress['started_at'] ?? $finished);
+        $duration   = max(0, $finished - $started_at);
+    
+        $h = floor($duration / 3600);
+        $m = floor(($duration % 3600) / 60);
+        $s = $duration % 60;
+        $dur_str = $h ? sprintf('%dh %02dm %02ds', $h, $m, $s) : ($m ? sprintf('%dm %02ds', $m, $s) : sprintf('%ds', $s));
+        $pct = $total > 0 ? (int) round(($processed / $total) * 100) : 0;
+    
+        $summary = sprintf(
+            __('TMDB update completed in %1$s — %2$d%% (%3$d/%4$d). Updated: %5$d • Failed: %6$d', 'letterboxd-connect'),
+            $dur_str, $pct, $processed, $total, $updated, $failed
         );
+    
+        $this->finish_and_redirect($progress_key, $proc_total_key, $succ_total_key, $fail_total_key, $progress, $summary);
 
-        // Clear the transients used for tracking
-        delete_transient("letterboxd_tmdb_update_processed");
-        delete_transient("letterboxd_tmdb_update_success");
-        delete_transient("letterboxd_tmdb_update_failed");
-        delete_transient("letterboxd_tmdb_update_results");
-
-        // Add message and redirect back to settings
-        add_settings_error(
-            "letterboxd_messages",
-            "tmdb_update_complete",
-            $message,
-            "success"
-        );
-
-        set_transient("settings_errors", get_settings_errors(), 30);
-        wp_redirect(
-            admin_url(
-                "options-general.php?page=letterboxd-connect&tab=advanced&updated=true"
-            )
-        );
-        exit();
     }
+
 
     /**
      * Enqueue admin scripts and styles with proper dependencies
@@ -1130,48 +1407,35 @@ class Letterboxd_Settings_Manager {
         if ("settings_page_" . self::MENU_SLUG !== $hook) {
             return;
         }
-
         $plugin_url = plugin_dir_url(LETTERBOXD_PLUGIN_FILE);
-
-        // jQuery UI styles first (dependency for admin styles)
+        
         wp_enqueue_style(
-            "letterboxd-jquery-ui",
-            plugin_dir_url(__FILE__) . 'assets/css/jquery-ui.min.css',
+            'letterboxd-admin',
+            $plugin_url . 'css/admin.css',
             [],
-            "1.12.1"
-        );
-
-        // Admin styles
-        wp_enqueue_style(
-            "letterboxd-admin",
-            $plugin_url . "css/admin.css",
-            ["letterboxd-jquery-ui"],
-            LETTERBOXD_VERSION
-        );
-
-        // Core scripts
-        wp_enqueue_script("jquery");
-        wp_enqueue_script("jquery-ui-core");
-        wp_enqueue_script("jquery-ui-datepicker");
-        wp_enqueue_script("jquery-ui-tabs");
-        wp_enqueue_media();
-
-        // Settings script
-        wp_enqueue_script(
-            "letterboxd-settings",
-            $plugin_url . "js/settings.js",
-            [
-                "jquery",
-                "jquery-ui-core",
-                "jquery-ui-datepicker",
-                "jquery-ui-tabs",
-                "wp-api-fetch",
-                "wp-i18n",
-                "wp-util",
-            ],
             LETTERBOXD_VERSION,
-            true
+            'all'
         );
+        
+        // Let dependencies pull in the core handles automatically
+        wp_enqueue_script(
+          'letterboxd-settings',
+          $plugin_url . 'js/settings.js',
+          [
+            'jquery',
+            'jquery-ui-core',
+            'jquery-ui-datepicker',
+            'common',
+            'wp-api-fetch',
+            'wp-i18n',
+            'wp-util',
+          ],
+          LETTERBOXD_VERSION,
+          true
+        );
+
+        
+        wp_enqueue_media();
 
         $auto_import_options = get_option("letterboxd_auto_import_options", [
             "frequency" => "daily",
@@ -1203,7 +1467,7 @@ class Letterboxd_Settings_Manager {
         wp_localize_script(
             "letterboxd-settings",
             "letterboxdSettings",
-            $settings_data
+            $settings_data,
         );
 
         if (!empty($token)) {
@@ -1221,7 +1485,8 @@ class Letterboxd_Settings_Manager {
      * @return array The validated and sanitized data
      * @throws \Exception If validation fails
      */
-    private function validateAndSanitize(array $input): array {
+    private function validateAndSanitize(array $input): array
+    {
         $validated = [];
         $errors = [];
 
@@ -1263,7 +1528,8 @@ class Letterboxd_Settings_Manager {
      * @param array $input Options to sanitize
      * @return array Sanitized options
      */
-    public function sanitize_options(array $input): array {
+    public function sanitize_options(array $input): array
+    {
         try {
             // Just sanitize and return the options
             return [
@@ -1279,32 +1545,34 @@ class Letterboxd_Settings_Manager {
             add_settings_error(
                 "letterboxd_messages",
                 "validation_error",
-                $e->getMessage()
+                $e->getMessage(),
             );
             return $this->options;
         }
     }
 
     /**
-     * Sanitize advanced options
+     * Sanitize advanced options (gracefully handles null input).
      *
-     * @param array $input Advanced options to sanitize
-     * @return array Sanitized advanced options
+     * @param array|null $input Advanced options to sanitize, or null if none posted.
+     * @return array Sanitized advanced options.
      */
-    public function sanitize_advanced_options(array $input): array {
-        $sanitized = [];
+    public function sanitize_advanced_options($input): array
+    {
+        // If nothing was posted for advanced options, start from existing defaults
+        $existing = get_option(
+            self::ADVANCED_OPTION_NAME,
+            self::DEFAULT_ADVANCED_OPTIONS,
+        );
+        $input = is_array($input) ? $input : [];
 
-        if (isset($input["tmdb_api_key"])) {
-            $sanitized["tmdb_api_key"] = sanitize_text_field(
-                $input["tmdb_api_key"]
-            );
-        }
-
-        // Preserve other advanced options
-        $existing = get_option(self::ADVANCED_OPTION_NAME, []);
-        if (isset($existing["tmdb_session_id"])) {
-            $sanitized["tmdb_session_id"] = $existing["tmdb_session_id"];
-        }
+        // Sanitize only the fields we know about
+        $sanitized = [
+            "tmdb_api_key" => isset($input["tmdb_api_key"])
+                ? sanitize_text_field($input["tmdb_api_key"])
+                : $existing["tmdb_api_key"] ?? "",
+            "tmdb_session_id" => $existing["tmdb_session_id"] ?? "",
+        ];
 
         return $sanitized;
     }
@@ -1312,12 +1580,13 @@ class Letterboxd_Settings_Manager {
     /**
      * Render settings description
      */
-    public function render_settings_description(): void {
+    public function render_settings_description(): void
+    {
         ?>
         <p>
             <?php esc_html_e(
                 "Configure your Letterboxd import settings below. Make sure to save your settings before importing.",
-                "letterboxd-connect"
+                "letterboxd-connect",
             ); ?>
         </p>
         <?php
@@ -1326,22 +1595,22 @@ class Letterboxd_Settings_Manager {
     /**
      * Render username field
      */
-    public function render_username_field($args): void {
-        $field = $args['label_for'] ?? 'username';
+    public function render_username_field(): void
+    {
         printf(
-            '<input type="text" id="%1$s" name="%2$s[%1$s]" value="%3$s" class="regular-text" required>
-            <p class="description">%4$s</p>',
-            esc_attr($field),
+            '<input type="text" name="%s[username]" value="%s" class="regular-text" required>
+            <p class="description">%s</p>',
             esc_attr(self::OPTION_NAME),
-            esc_attr($this->options[$field] ?? ''),
-            esc_html__("Your Letterboxd username", "letterboxd-connect")
+            esc_attr($this->options["username"]),
+            esc_html__("Your Letterboxd username", "letterboxd-connect"),
         );
     }
 
     /**
      * Render start date field
      */
-    public function render_start_date_field(): void {
+    public function render_start_date_field(): void
+    {
         printf(
             '<input type="date" id="start_date" name="%s[start_date]" value="%s" class="regular-text" max="%s">
             <p class="description">%s</p>',
@@ -1350,15 +1619,16 @@ class Letterboxd_Settings_Manager {
             esc_attr(gmdate("Y-m-d")),
             esc_html__(
                 "Optional: Only import movies watched after this date",
-                "letterboxd-connect"
-            )
+                "letterboxd-connect",
+            ),
         );
     }
 
     /**
      * Render draft status field
      */
-    public function render_draft_status_field(): void {
+    public function render_draft_status_field(): void
+    {
         printf(
             '<input type="checkbox" name="%s[draft_status]" value="1" %s>
             <span class="description">%s</span>',
@@ -1366,8 +1636,8 @@ class Letterboxd_Settings_Manager {
             checked($this->options["draft_status"], true, false),
             esc_html__(
                 "Save imported movies as drafts instead of publishing immediately",
-                "letterboxd-connect"
-            )
+                "letterboxd-connect",
+            ),
         );
     }
 
@@ -1375,7 +1645,8 @@ class Letterboxd_Settings_Manager {
      * This method is now simplified and only used as a fallback
      * for any old code that might still call it
      */
-    public function run_import_if_flagged(): void {
+    public function run_import_if_flagged(): void
+    {
         $flag = get_option("letterboxd_run_import_flag", false);
 
         // This method should no longer be used directly - the import should be triggered
@@ -1396,11 +1667,12 @@ class Letterboxd_Settings_Manager {
      * @param array $links Existing plugin action links.
      * @return array Modified links including our Settings link.
      */
-    public function add_plugin_action_links(array $links): array {
+    public function add_plugin_action_links(array $links): array
+    {
         $settings_link = sprintf(
             '<a href="%s">%s</a>',
             admin_url("options-general.php?page=" . self::MENU_SLUG),
-            __("Settings", "letterboxd-connect")
+            __("Settings", "letterboxd-connect"),
         );
         // Prepend the link so it appears first
         array_unshift($links, $settings_link);
@@ -1413,7 +1685,8 @@ class Letterboxd_Settings_Manager {
      * @param array $columns The existing columns.
      * @return array Modified columns including the new columns.
      */
-    public function add_movie_columns(array $columns): array {
+    public function add_movie_columns(array $columns): array
+    {
         $new_columns = [];
         foreach ($columns as $key => $value) {
             $new_columns[$key] = $value;
@@ -1425,7 +1698,7 @@ class Letterboxd_Settings_Manager {
                 if ($this->is_tmdb_authenticated()) {
                     $new_columns["director"] = __(
                         "Director",
-                        "letterboxd-connect"
+                        "letterboxd-connect",
                     );
                 }
             }
@@ -1439,7 +1712,8 @@ class Letterboxd_Settings_Manager {
      * @param string $column  The name of the column to display.
      * @param int    $post_id The current post ID.
      */
-    public function display_movie_columns(string $column, int $post_id): void {
+    public function display_movie_columns(string $column, int $post_id): void
+    {
         switch ($column) {
             case "rating":
                 $rating = get_post_meta($post_id, "movie_rating", true);
@@ -1461,12 +1735,13 @@ class Letterboxd_Settings_Manager {
      * @param string $username Username to validate
      * @return true|WP_Error True if valid, WP_Error if not
      */
-    private function validate_letterboxd_username($username) {
+    private function validate_letterboxd_username($username)
+    {
         // Check if username is empty
         if (empty($username)) {
             return new WP_Error(
                 "invalid_username",
-                __("Username cannot be empty.", "letterboxd-connect")
+                __("Username cannot be empty.", "letterboxd-connect"),
             );
         }
 
@@ -1481,11 +1756,11 @@ class Letterboxd_Settings_Manager {
                     /* translators: 1: Minimum username length, 2: Maximum username length */
                     __(
                         "Username must be between %1\$d and %2\$d characters.",
-                        "letterboxd-connect"
+                        "letterboxd-connect",
                     ),
                     self::USERNAME_MIN_LENGTH,
-                    self::USERNAME_MAX_LENGTH
-                )
+                    self::USERNAME_MAX_LENGTH,
+                ),
             );
         }
 
@@ -1495,8 +1770,8 @@ class Letterboxd_Settings_Manager {
                 "invalid_username",
                 __(
                     "Username can only contain lowercase letters, numbers, and hyphens. It cannot start or end with a hyphen.",
-                    "letterboxd-connect"
-                )
+                    "letterboxd-connect",
+                ),
             );
         }
 
@@ -1504,89 +1779,29 @@ class Letterboxd_Settings_Manager {
     }
 
     /**
-     * Method to create TMDB request token
+     * Method to create TMDB request token (stub implementation)
      *
      * @return WP_REST_Response
      */
-    public function create_tmdb_request_token() {
-        $api_key = $this->advanced_options['tmdb_api_key'] ?? '';
-
-        if (empty($api_key)) {
-            return new WP_REST_Response([
-                'success' => false,
-                'message' => __('TMDB API key is missing.', 'letterboxd-connect'),
-            ], 400);
-        }
-
-        $result = $this->api_service->createTmdbRequestToken($api_key);
-
-        if (is_wp_error($result)) {
-            return new WP_REST_Response([
-                'success' => false,
-                'message' => $result->get_error_message(),
-            ], 400);
-        }
-
-        $request_token = $result['request_token'];
-
-        // Store the token temporarily for later use
-        set_transient('letterboxd_tmdb_request_token', $request_token, 15 * MINUTE_IN_SECONDS);
-
-        // ✅ Build the redirect URI to return to your plugin with the necessary flag
-        $redirect_url = add_query_arg([
-            'page' => 'letterboxd-connect',
-            'tab' => 'advanced',
-            'tmdb_auth' => 'callback',
-        ], admin_url('options-general.php'));
-
-        // ✅ Build full TMDB authorization URL
-        $auth_url = "https://www.themoviedb.org/authenticate/{$request_token}?redirect_to=" . urlencode($redirect_url);
-
+    public function create_tmdb_request_token()
+    {
         return new WP_REST_Response([
-            'success' => true,
-            'request_token' => $request_token,
-            'auth_url' => $auth_url,
+            "success" => true,
+            "request_token" => "sample_token",
         ]);
     }
 
-
     /**
-     * Method to create TMDB session
+     * Method to create TMDB session (stub implementation)
      *
      * @param WP_REST_Request $request
      * @return WP_REST_Response
      */
-    public function create_tmdb_session(WP_REST_Request $request): WP_REST_Response {
-        $request_token = $request->get_param('request_token');
-        $api_key = $this->advanced_options['tmdb_api_key'] ?? '';
-
-        if (empty($api_key)) {
-            return new WP_REST_Response([
-                'success' => false,
-                'message' => __('TMDB API key is missing.', 'letterboxd-connect'),
-            ], 400);
-        }
-
-        $result = $this->api_service->createTmdbSession($api_key, $request_token);
-
-        if (is_wp_error($result)) {
-            return new WP_REST_Response([
-                'success' => false,
-                'message' => $result->get_error_message(),
-            ], 400);
-        }
-
-        // Optional: Save session ID to advanced options
-        $this->advanced_options['tmdb_session_id'] = $result['session_id'];
-        update_option(self::ADVANCED_OPTION_NAME, $this->advanced_options);
-
-        // ✅ Stop the reload loop
-        delete_transient('letterboxd_tmdb_auth_callback');
-
+    public function create_tmdb_session(WP_REST_Request $request)
+    {
         return new WP_REST_Response([
-            'success' => true,
-            'session_id' => $result['session_id'],
+            "success" => true,
+            "session_id" => "sample_session_id",
         ]);
     }
-
 }

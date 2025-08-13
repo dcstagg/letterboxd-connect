@@ -72,7 +72,6 @@ jQuery(document).ready(($) => {
 		setupFormSubmission();
 		initializeStatusUpdates();
 		setupTmdbAuth();
-		setupTmdbUpdateButton();
 	}
 	
 	function initializeDatepicker() {
@@ -83,7 +82,6 @@ jQuery(document).ready(($) => {
 			changeYear: true
 		});
 	}
-	
 	
 	function setupTmdbAuth() {
 		const authorizeButton = $(SELECTORS.tmdbAuthorizeButton);
@@ -187,50 +185,70 @@ jQuery(document).ready(($) => {
 	}
 	
 	function setupTmdbApiValidation() {
-		const validateButton = $(SELECTORS.validateTmdbButton);
-		const resultSpan = $(SELECTORS.tmdbValidationResult);
-
-		validateButton.on('click', function() {
-			const apiKey = $(SELECTORS.tmdbApiKeyField).val();
-			
-			if (!apiKey) {
-				updateMessage(resultSpan, messages.enterApiKey, CLASSES.notice.error);
-				return;
-			}
-			
-			resultSpan.html(`<span>${messages.testingConnection}</span>`);
-			
-			wp.apiFetch({
-				path: `${restNamespace}/validate-tmdb-api?api_key=${encodeURIComponent(apiKey)}`,
-				method: 'GET'
-			}).then(response => {
-				updateMessage(
-					resultSpan,
-					response.message,
-					response.success ? CLASSES.notice.success : CLASSES.notice.error
-				);
-			}).catch(error => {
-				console.error('API validation error:', error);
-				updateMessage(
-					resultSpan,
-					error.message || messages.connectionError,
-					CLASSES.notice.error
-				);
-			});
-		});
-	}
+	  const btn      = document.querySelector(SELECTORS.validateTmdbButton);
+	  const resultEl = document.querySelector(SELECTORS.tmdbValidationResult);
+	  const inputEl  = document.querySelector(SELECTORS.tmdbApiKeyField);
+	  if (!btn || !resultEl || !inputEl) return;
 	
-	function setupTmdbUpdateButton() {
-		$('.tmdb-bulk-update-section a.button').on('click', function(e) {
-			
-			// Disable button and add spinner
-			const $button = $(this);
-			$button.addClass('disabled').css('pointer-events', 'none');
-			$button.prepend('<span class="spinner is-active"></span>');
-			
-			// Add status text
-			$button.parent().append('<p class="update-status">Update in progress, please wait...</p>');
-		});
+	  // Ensure REST nonce once (if your PHP localized it as letterboxdSettings.apiNonce)
+	  try {
+		if (window.wp && wp.apiFetch && wp.apiFetch.createNonceMiddleware) {
+		  if (!wp.apiFetch.__lcNonceApplied && window.letterboxdSettings?.apiNonce) {
+			wp.apiFetch.use(wp.apiFetch.createNonceMiddleware(letterboxdSettings.apiNonce));
+			wp.apiFetch.__lcNonceApplied = true;
+		  }
+		}
+	  } catch (_) {}
+	
+	  btn.addEventListener('click', async function () {
+		const apiKey = (inputEl.value || '').trim();
+		if (!apiKey) {
+		  setMessage(resultEl, messages.enterApiKey, CLASSES.notice.error);
+		  return;
+		}
+	
+		// "Testing…" message
+		resultEl.innerHTML = `<p>${messages.testingConnection}</p>`;
+		resultEl.classList.remove(CLASSES.notice.success, CLASSES.notice.error);
+	
+		// Build REST path (make sure there’s a leading slash)
+		const ns   = (window.letterboxdSettings && letterboxdSettings.restNamespace) || 'letterboxd-connect/v1';
+		const path = '/' + ns.replace(/^\//, '') + '/validate-tmdb-api?api_key=' + encodeURIComponent(apiKey);
+	
+		try {
+		  const res = await wp.apiFetch({ path, method: 'GET' });
+		  setMessage(
+			resultEl,
+			(res && res.message) || 'API key is valid.',
+			res && res.success ? CLASSES.notice.success : CLASSES.notice.error
+		  );
+		} catch (err) {
+		  const msg = (err && (err.message || err.data?.message)) || messages.connectionError;
+		  setMessage(resultEl, msg, CLASSES.notice.error);
+		  console.error('API validation error:', err);
+		}
+	  });
+	
+	  // Adapter: use your existing updateMessage if present; otherwise DOM fallback.
+	  function setMessage(node, text, className) {
+		if (typeof updateMessage === 'function') {
+		  if (window.jQuery && !node.jquery) {
+			// updateMessage expects a jQuery object in your current code
+			return updateMessage(jQuery(node), text, className);
+		  }
+		  return updateMessage(node, text, className);
+		}
+		// Fallback: minimal DOM updater
+		node.textContent = text;
+		// Remove both your known classes if present
+		try {
+		  if (CLASSES?.notice?.success) node.classList.remove(CLASSES.notice.success);
+		  if (CLASSES?.notice?.error)   node.classList.remove(CLASSES.notice.error);
+		} catch (_) {}
+		if (className) {
+		  className.split(/\s+/).forEach(c => c && node.classList.add(c));
+		}
+	  }
 	}
 
 	function setupFormSubmission() {
@@ -251,8 +269,8 @@ jQuery(document).ready(($) => {
 			const data = {};
 			
 			// Always include username (required field)
-			const usernameField = form.find('input[name="letterboxd_wordpress_options[username]"]');
-			data.username = usernameField.val() || '';
+			const formData = new FormData(this);
+			data.username = formData.get('letterboxd_wordpress_options[username]') || '';
 			
 			// Include other fields
 			if (currentTab === 'general') {

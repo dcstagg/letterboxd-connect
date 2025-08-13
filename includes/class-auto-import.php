@@ -415,30 +415,24 @@ class Letterboxd_Auto_Import {
      * Update import schedule with improved error handling
      */
     public function update_import_schedule(string $interval): bool {
-        letterboxd_debug_log(
-            "update_import_schedule called with interval: " . $interval
-        );
+        //letterboxd_debug_log( "update_import_schedule called with interval: " . $interval );
 
         // Validate the interval
         $valid_intervals = array_keys(self::SCHEDULES);
         if (!in_array($interval, $valid_intervals)) {
-            letterboxd_debug_log("Invalid interval: " . $interval);
+            //letterboxd_debug_log("Invalid interval: " . $interval);
             return false;
         }
 
         // Clear the existing schedule
         $hook_name = self::HOOK_NAME;
         if (wp_next_scheduled($hook_name)) {
-            letterboxd_debug_log(
-                "Clearing existing schedule for " . $hook_name
-            );
+            //letterboxd_debug_log( "Clearing existing schedule for " . $hook_name );
             wp_clear_scheduled_hook($hook_name);
         }
 
         if (!empty($interval) && $interval !== "disabled") {
-            letterboxd_debug_log(
-                "Setting up new schedule with interval: " . $interval
-            );
+            //letterboxd_debug_log( "Setting up new schedule with interval: " . $interval );
 
             // Update the cached options first
             $this->cached_options["frequency"] = $interval;
@@ -454,10 +448,10 @@ class Letterboxd_Auto_Import {
                 $interval,
                 $hook_name
             );
-            letterboxd_debug_log(
-                "wp_schedule_event result: " .
-                    ($schedule_result !== false ? "Success" : "Failed")
-            );
+            // letterboxd_debug_log(
+            //     "wp_schedule_event result: " .
+            //         ($schedule_result !== false ? "Success" : "Failed")
+            // );
 
             // Only update options if scheduling was successful
             if ($schedule_result !== false) {
@@ -483,9 +477,7 @@ class Letterboxd_Auto_Import {
     public function letterboxd_check_and_import(): void {
         // Check if this is being called right after settings update
         if (get_transient("letterboxd_settings_just_updated")) {
-            letterboxd_debug_log(
-                "Skipping auto-import because settings were just updated"
-            );
+            //letterboxd_debug_log( "Skipping auto-import because settings were just updated" );
             delete_transient("letterboxd_settings_just_updated");
             return;
         }
@@ -494,9 +486,7 @@ class Letterboxd_Auto_Import {
 
         // Check if another import is running
         if (get_transient($lock_key)) {
-            letterboxd_debug_log(
-                "Skipping import - another process is running"
-            );
+            //letterboxd_debug_log( "Skipping import - another process is running" );
             return;
         }
 
@@ -504,7 +494,7 @@ class Letterboxd_Auto_Import {
         set_transient($lock_key, true, self::IMPORT_LOCK_DURATION);
 
         try {
-            letterboxd_debug_log("Starting scheduled import");
+            //letterboxd_debug_log("Starting scheduled import");
             $this->update_last_check();
             $importer = $this->main_plugin->importer;
             $settings = get_option("letterboxd_wordpress_options", []);
@@ -519,7 +509,7 @@ class Letterboxd_Auto_Import {
         } finally {
             // Always clear the transient lock after processing
             delete_transient($lock_key);
-            letterboxd_debug_log("Import completed and lock cleared");
+            //letterboxd_debug_log("Import completed and lock cleared");
         }
     }
 
@@ -580,14 +570,14 @@ class Letterboxd_Auto_Import {
         ];
 
         $this->log_import_result($result);
-        letterboxd_debug_log(
-            sprintf(
-                "Letterboxd import error: %s in %s:%d",
-                $e->getMessage(),
-                $e->getFile(),
-                $e->getLine()
-            )
-        );
+        // letterboxd_debug_log(
+        //     sprintf(
+        //         "Letterboxd import error: %s in %s:%d",
+        //         $e->getMessage(),
+        //         $e->getFile(),
+        //         $e->getLine()
+        //     )
+        // );
 
         // Clear the lock and clean up any stale transients
         delete_transient(self::CACHE_GROUP . "_import_lock");
@@ -777,7 +767,7 @@ class Letterboxd_Auto_Import {
             }
         }
 
-        letterboxd_debug_log("Cleaned up {$count} stale transients");
+        // letterboxd_debug_log("Cleaned up {$count} stale transients");
         return $count;
     }
 
