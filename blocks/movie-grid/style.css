@@ -1,0 +1,70 @@
+/* Movie Grid block. Its variables are scoped to the block and take the theme's
+   values where it has them (1.x set them on :root, overriding the theme's). */
+.wp-block-letterboxd-connect-movie-grid {
+	--lbc-line-height: var(--line-height, 1.2);
+	--lbc-card-bg: var(--white, #fff);
+	--lbc-shadow-small: 0 0.125rem 0.25rem rgb(0 0 0 / 10%);
+	--lbc-shadow-large: 0 0.25rem 0.5rem rgb(0 0 0 / 15%);
+	--lbc-light-grey: var(--light-grey, #f5f5f5);
+	--lbc-font-size-sm: 0.75rem;
+	--lbc-muted: var(--opacity, 0.7);
+	--lbc-gap: 0.5rem;
+	--lbc-gap-l: 1.5rem;
+	--lbc-radius: 0.5rem;
+	--lbc-thumbnail-width: 8rem;
+	--lbc-imdb: #f5c518;
+	--lbc-rt: #d62a08; /* Rotten Tomatoes red, darkened for 4.5:1 with white text. */
+
+	margin: var(--lbc-gap) 0;
+}
+
+.wp-block-letterboxd-connect-movie-grid .movie-item { background: var(--lbc-card-bg); border-radius: var(--lbc-radius); overflow: hidden; box-shadow: var(--lbc-shadow-small); transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+.wp-block-letterboxd-connect-movie-grid .movie-item:hover { transform: translateY(-0.25rem); box-shadow: var(--lbc-shadow-large); }
+.wp-block-letterboxd-connect-movie-grid .movie-poster { position: relative; aspect-ratio: 2 / 3; width: 100%; overflow: hidden; }
+.wp-block-letterboxd-connect-movie-grid .movie-poster img { object-fit: cover; position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.wp-block-letterboxd-connect-movie-grid .movie-details { padding: 1rem; gap: var(--lbc-gap); }
+.wp-block-letterboxd-connect-movie-grid .movie-details h3.movie-title { font-size: 1rem; font-weight: 700; margin: 0; overflow: hidden; text-overflow: ellipsis; line-height: var(--lbc-line-height); }
+.wp-block-letterboxd-connect-movie-grid .movie-details p { line-height: var(--lbc-line-height); font-size: var(--lbc-font-size-sm); margin: 0; }
+.wp-block-letterboxd-connect-movie-grid .movie-meta { font-size: 0.875rem; margin-bottom: 1.5rem; }
+.wp-block-letterboxd-connect-movie-grid .movie-meta .movie-director::before { content: "Dir: "; opacity: var(--lbc-muted); }
+.wp-block-letterboxd-connect-movie-grid .movie-meta .watch-date::before { content: "Watched: "; opacity: var(--lbc-muted); }
+.wp-block-letterboxd-connect-movie-grid .movie-links { margin-top: auto; line-height: 1; }
+.wp-block-letterboxd-connect-movie-grid .movie-links .external-link { display: inline-block; padding: 0.25rem 0.5rem; border-radius: var(--lbc-radius); font-size: var(--lbc-font-size-sm); font-weight: 700; text-decoration: none; color: #fff; line-height: 1; transition: opacity 0.2s ease-in-out; }
+.wp-block-letterboxd-connect-movie-grid .movie-links .external-link:hover { opacity: var(--lbc-muted); }
+.wp-block-letterboxd-connect-movie-grid .movie-links .watch-link { background-color: var(--lbc-light-grey); color: #000; }
+.wp-block-letterboxd-connect-movie-grid .movie-links .imdb-link { background-color: var(--lbc-imdb); color: #000; }
+.wp-block-letterboxd-connect-movie-grid .movie-links .rt-link { background-color: var(--lbc-rt); }
+
+/* Cards */
+.wp-block-letterboxd-connect-movie-grid .movie-card { display: flex; flex-direction: column; }
+.wp-block-letterboxd-connect-movie-grid .movie-card .movie-details { display: flex; flex-direction: column; flex-grow: 1; }
+.wp-block-letterboxd-connect-movie-grid .movie-grid { display: grid; gap: var(--lbc-gap); grid-template-columns: repeat(2, 1fr); }
+.wp-block-letterboxd-connect-movie-grid[data-columns="1"] .movie-grid { grid-template-columns: 1fr; gap: var(--lbc-gap-l); }
+
+/* List */
+.wp-block-letterboxd-connect-movie-grid .movie-list { display: flex; flex-direction: column; gap: 1rem; }
+.wp-block-letterboxd-connect-movie-grid .movie-list-item { display: flex; }
+.wp-block-letterboxd-connect-movie-grid .movie-list-item .movie-poster { flex: 0 0 auto; width: var(--lbc-thumbnail-width); }
+.wp-block-letterboxd-connect-movie-grid .movie-list-item .movie-details { flex: 1; padding: 0.75rem 1rem; display: flex; flex-direction: column; }
+
+/* Pages */
+.wp-block-letterboxd-connect-movie-grid .movie-grid-pagination { margin-top: 2rem; width: 100%; text-align: center; }
+.wp-block-letterboxd-connect-movie-grid .movie-grid-pagination .page-numbers { display: flex; flex-wrap: wrap; justify-content: center; list-style: none; padding: 0; margin: 0; gap: 0.25rem; }
+.wp-block-letterboxd-connect-movie-grid .movie-grid-pagination .page-numbers li { margin: 0; padding: 0; }
+.wp-block-letterboxd-connect-movie-grid .movie-grid-pagination .page-numbers a,
+.wp-block-letterboxd-connect-movie-grid .movie-grid-pagination .page-numbers span { display: inline-flex; align-items: center; justify-content: center; padding: 0.5rem 0.75rem; text-decoration: none; border-radius: var(--lbc-radius); background-color: var(--lbc-card-bg); box-shadow: var(--lbc-shadow-small); transition: all 0.2s ease; font-size: 0.825rem; }
+.wp-block-letterboxd-connect-movie-grid .movie-grid-pagination .page-numbers a:hover,
+.wp-block-letterboxd-connect-movie-grid .movie-grid-pagination .page-numbers a:focus { background-color: var(--lbc-light-grey); box-shadow: var(--lbc-shadow-large); transform: translateY(-2px); }
+.wp-block-letterboxd-connect-movie-grid .movie-grid-pagination .page-numbers .current { background-color: var(--lbc-light-grey); }
+.wp-block-letterboxd-connect-movie-grid .pagination-note { margin-top: 2rem; font-size: 0.825rem; padding: 0.5rem; background-color: var(--lbc-light-grey); border-radius: var(--lbc-radius); text-align: center; }
+
+@media (min-width: 768px) {
+	.wp-block-letterboxd-connect-movie-grid { --lbc-thumbnail-width: 12rem; }
+	.wp-block-letterboxd-connect-movie-grid .movie-grid { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+	.wp-block-letterboxd-connect-movie-grid[data-columns="2"] .movie-grid { grid-template-columns: repeat(2, 1fr); gap: var(--lbc-gap-l); }
+	.wp-block-letterboxd-connect-movie-grid[data-columns="3"] .movie-grid { grid-template-columns: repeat(3, 1fr); }
+	.wp-block-letterboxd-connect-movie-grid[data-columns="4"] .movie-grid { grid-template-columns: repeat(4, 1fr); }
+	.wp-block-letterboxd-connect-movie-grid[data-columns="5"] .movie-grid { grid-template-columns: repeat(5, 1fr); }
+	.wp-block-letterboxd-connect-movie-grid[data-columns="6"] .movie-grid { grid-template-columns: repeat(6, 1fr); }
+	.wp-block-letterboxd-connect-movie-grid .movie-meta { display: flex; flex-direction: column; gap: var(--lbc-gap); }
+}

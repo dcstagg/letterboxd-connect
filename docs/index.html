@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Letterboxd Connect — your film diary on your WordPress site</title>
+<meta name="description" content="A free WordPress plugin that turns every film you log on Letterboxd into a post on your site, with your rating, review, watch date and poster.">
+<link rel="canonical" href="https://dcstagg.github.io/letterboxd-connect/">
+<meta property="og:title" content="Letterboxd Connect">
+<meta property="og:description" content="Your Letterboxd diary, on your own WordPress site. Free and open source.">
+<meta property="og:url" content="https://dcstagg.github.io/letterboxd-connect/">
+<meta property="og:image" content="https://dcstagg.github.io/letterboxd-connect/shots/movie-grid.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M3 8h26v5a3 3 0 0 0 0 6v5H3v-5a3 3 0 0 0 0-6z' fill='%23C8323C'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Letterboxd Connect","applicationCategory":"WordPress plugin","operatingSystem":"WordPress 6.6+, PHP 8.4+","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"license":"https://www.gnu.org/licenses/gpl-3.0.html","author":{"@type":"Person","name":"David Stagg","url":"https://davidstagg.com"},"downloadUrl":"https://github.com/dcstagg/letterboxd-connect/releases/latest/download/letterboxd-connect.zip"}
+</script>
+<style>
+:root {
+	--paper: #DCEFE6;   /* ticket stock */
+	--card: #FBFDFC;    /* the ticket itself */
+	--ink: #1E2A28;     /* cinema-seat green-black */
+	--muted: #4A5C57;
+	--sage: #7FA99A;
+	--stamp: #C8323C;   /* box-office stamp: stars and the download button only */
+	--rule: #B9D6C9;
+	--display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+	--text: "Source Serif 4", Georgia, serif;
+	--measure: 38rem;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--paper: #142220;
+		--card: #1D2E2B;
+		--ink: #E4F2EB;
+		--muted: #A9C2B8;
+		--sage: #6E978A;
+		--stamp: #E2515A;
+		--rule: #2E4642;
+	}
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+	margin: 0;
+	background: var(--paper);
+	color: var(--ink);
+	font: 400 1.125rem/1.65 var(--text);
+	font-optical-sizing: auto;
+}
+img { max-width: 100%; height: auto; display: block; }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 3px solid var(--stamp); outline-offset: 3px; border-radius: 2px; }
+code { font-size: 0.9em; background: color-mix(in srgb, var(--sage) 22%, transparent); padding: 0.05em 0.3em; border-radius: 3px; }
+
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 1rem; top: 1rem; background: var(--card); padding: 0.5rem 1rem; z-index: 2; }
+
+.wrap { width: min(72rem, 100% - 2rem); margin-inline: auto; }
+
+/* Masthead */
+.masthead { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-block: 1.25rem; flex-wrap: wrap; }
+.wordmark { font: 900 1.5rem/1 var(--display); letter-spacing: 0.01em; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; }
+.wordmark svg { width: 1.6rem; height: 1.6rem; fill: var(--stamp); }
+.masthead nav { display: flex; gap: 1.25rem; flex-wrap: wrap; font-size: 1rem; }
+
+/* Hero */
+.hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 3rem; align-items: center; padding-block: 3rem 5rem; }
+h1, h2, h3 { font-family: var(--display); font-weight: 900; line-height: 0.95; letter-spacing: 0.005em; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(3.2rem, 8vw, 6.25rem); }
+.lead { font-size: 1.3rem; max-width: var(--measure); margin: 1.5rem 0 2rem; }
+.actions { display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap; }
+.download {
+	display: inline-flex; flex-direction: column; gap: 0.1rem;
+	background: var(--stamp); color: #fff; text-decoration: none;
+	padding: 0.85rem 1.4rem 0.75rem; border-radius: 4px;
+	font: 700 1.5rem/1 var(--display); letter-spacing: 0.02em;
+	box-shadow: 0 3px 0 color-mix(in srgb, var(--stamp) 60%, #000);
+}
+.download small { font: 400 0.85rem/1.3 var(--text); opacity: 0.92; letter-spacing: 0; }
+.download:hover { filter: brightness(1.06); }
+.download:active { transform: translateY(2px); box-shadow: 0 1px 0 color-mix(in srgb, var(--stamp) 60%, #000); }
+.fine { font-size: 0.95rem; color: var(--muted); margin-top: 1.5rem; }
+
+/* The ticket: a diary entry, torn from Letterboxd, stubbed for your site */
+.ticket-wrap { justify-self: center; width: min(100%, 27rem); }
+.ticket {
+	--hole: 0.9rem;
+	display: grid; grid-template-columns: 1fr 5.25rem;
+	min-height: 14rem; /* room for the stub's sideways address */
+	background: var(--card);
+	border-radius: 10px;
+	box-shadow: 0 1px 0 var(--rule), 0 18px 40px -18px color-mix(in srgb, var(--ink) 45%, transparent);
+	transform: rotate(-2.5deg);
+	/* Punched notches where the stub tears off */
+	-webkit-mask: radial-gradient(circle var(--hole) at calc(100% - 5.25rem) 0, #0000 98%, #000) top / 100% 51% no-repeat,
+	              radial-gradient(circle var(--hole) at calc(100% - 5.25rem) 100%, #0000 98%, #000) bottom / 100% 51% no-repeat;
+	        mask: radial-gradient(circle var(--hole) at calc(100% - 5.25rem) 0, #0000 98%, #000) top / 100% 51% no-repeat,
+	              radial-gradient(circle var(--hole) at calc(100% - 5.25rem) 100%, #0000 98%, #000) bottom / 100% 51% no-repeat;
+	animation: issue 900ms cubic-bezier(.2, .8, .2, 1) both 150ms;
+}
+@keyframes issue { from { transform: translateY(2.5rem) rotate(4deg); opacity: 0; } }
+.ticket .entry { padding: 1.6rem 1.5rem 1.4rem 1.75rem; }
+.ticket .from { font-size: 0.85rem; color: var(--muted); margin: 0 0 0.6rem; }
+.ticket .film { font: 900 2.6rem/0.95 var(--display); margin: 0; }
+.ticket .year { font-weight: 700; color: var(--muted); }
+.ticket dl { display: grid; grid-template-columns: auto 1fr; gap: 0.15rem 0.9rem; margin: 1.1rem 0 0; font-size: 0.95rem; }
+.ticket dt { color: var(--muted); }
+.ticket dd { margin: 0; }
+.ticket .stars { color: var(--stamp); letter-spacing: 0.08em; font-size: 1.15rem; line-height: 1.2; }
+.ticket .stub {
+	border-left: 2px dashed var(--rule);
+	display: grid; place-items: center;
+	padding: 1rem 0;
+}
+.ticket .stub span {
+	writing-mode: vertical-rl; transform: rotate(180deg);
+	font: 700 0.95rem/1 var(--display); letter-spacing: 0.06em; color: var(--muted);
+	white-space: nowrap;
+}
+.ticket-caption { font-size: 0.95rem; color: var(--muted); margin: 1.6rem 0 0; text-align: center; }
+
+/* Sections */
+section.part { padding-block: 4.5rem; border-top: 2px solid var(--rule); }
+.part > .wrap > h2 { font-size: clamp(2.4rem, 5vw, 3.5rem); margin-bottom: 2rem; }
+.intro { max-width: var(--measure); margin: -0.75rem 0 2.5rem; color: var(--muted); }
+
+.features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2.25rem 3.5rem; margin: 0; }
+.features div { max-width: 32rem; }
+.features dt { font: 700 1.6rem/1.05 var(--display); margin-bottom: 0.4rem; }
+.features dd { margin: 0; }
+
+.shots { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 2.5rem; align-items: start; }
+.shots figure { margin: 0; }
+.shots img { border-radius: 6px; border: 2px solid var(--ink); background: var(--card); }
+.shots figcaption { font-size: 0.95rem; color: var(--muted); margin-top: 0.75rem; }
+
+.steps { counter-reset: step; list-style: none; padding: 0; margin: 0; max-width: 46rem; }
+.steps li { counter-increment: step; display: grid; grid-template-columns: 3.25rem 1fr; gap: 0 1rem; padding: 1rem 0; border-bottom: 1px solid var(--rule); }
+.steps li::before { content: counter(step); font: 900 2.25rem/1 var(--display); color: var(--sage); }
+.steps li:last-child { border-bottom: 0; }
+.requires { margin-top: 2.5rem; max-width: var(--measure); }
+.requires h3 { font-size: 1.6rem; margin-bottom: 0.5rem; }
+.requires ul { margin: 0; padding-left: 1.2rem; }
+
+.faq { max-width: 46rem; }
+.faq details { border-bottom: 1px solid var(--rule); }
+.faq summary { cursor: pointer; padding: 1rem 2rem 1rem 0; font-weight: 600; list-style: none; position: relative; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; position: absolute; right: 0.25rem; top: 0.85rem; font: 700 1.5rem/1 var(--display); color: var(--sage); transition: transform 200ms; }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { margin: 0 0 1.25rem; max-width: var(--measure); }
+
+.changelog { max-width: 46rem; }
+.changelog h3 { font-size: 1.9rem; margin: 2.5rem 0 0.25rem; display: flex; gap: 0.75rem; align-items: baseline; flex-wrap: wrap; }
+.changelog h3:first-child { margin-top: 0; }
+.changelog h3 time { font: 400 1rem/1 var(--text); color: var(--muted); }
+.changelog ul { margin: 0.5rem 0 0; padding-left: 1.2rem; }
+.changelog li { margin: 0.35rem 0; }
+.changelog p { margin: 0.5rem 0; }
+.changelog .older { margin-top: 2rem; }
+
+footer { border-top: 2px solid var(--rule); padding-block: 2.5rem 3.5rem; font-size: 0.95rem; color: var(--muted); }
+footer p { max-width: 46rem; margin: 0 0 0.6rem; }
+
+@media (max-width: 52rem) {
+	.hero { grid-template-columns: 1fr; padding-block: 1.5rem 3.5rem; gap: 3rem; }
+	.features, .shots { grid-template-columns: 1fr; }
+	.ticket .film { font-size: 2.2rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+	.ticket { animation: none; }
+	.faq summary::after { transition: none; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="wrap masthead">
+	<a class="wordmark" href="./" aria-label="Letterboxd Connect, home">
+		<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 8h26v5a3 3 0 0 0 0 6v5H3v-5a3 3 0 0 0 0-6z"/></svg>
+		Letterboxd Connect
+	</a>
+	<nav aria-label="On this page">
+		<a href="#features">What it does</a>
+		<a href="#setup">Set up</a>
+		<a href="#changelog">Changelog</a>
+		<a href="https://github.com/dcstagg/letterboxd-connect">GitHub</a>
+	</nav>
+</header>
+
+<main id="main">
+	<div class="wrap hero">
+		<div>
+			<h1>Your film diary, on your own site.</h1>
+			<p class="lead">Letterboxd Connect is a free WordPress plugin. Every film you log on Letterboxd becomes a post on your site, with your rating, your review, the day you watched it and the poster.</p>
+			<div class="actions">
+				<a class="download" href="https://github.com/dcstagg/letterboxd-connect/releases/latest/download/letterboxd-connect.zip">
+					Download the plugin
+					<small>Version <span data-version>2.0.6</span>, a ZIP to upload in WordPress</small>
+				</a>
+				<a href="https://github.com/dcstagg/letterboxd-connect">Source on GitHub</a>
+			</div>
+			<p class="fine">For WordPress 6.6 and newer on PHP 8.4. Free and open source under the GPL.</p>
+		</div>
+
+		<div class="ticket-wrap">
+			<div class="ticket" role="img" aria-label="A diary entry as a cinema ticket: The Cycle, 2026, directed by Jordan Downey, watched October 27, 2026, rated four stars.">
+				<div class="entry">
+					<p class="from">From your Letterboxd diary</p>
+					<p class="film">The Cycle <span class="year">2026</span></p>
+					<dl>
+						<dt>Director</dt><dd>Jordan Downey</dd>
+						<dt>Watched</dt><dd>October 27, 2026</dd>
+						<dt>Rating</dt><dd class="stars">★★★★</dd>
+					</dl>
+				</div>
+				<div class="stub"><span>yoursite.com/movies</span></div>
+			</div>
+			<p class="ticket-caption">Logged on Letterboxd, posted on your site at the next check.</p>
+		</div>
+	</div>
+
+	<section class="part" id="features" aria-labelledby="features-title">
+		<div class="wrap">
+			<h2 id="features-title">What it does</h2>
+			<dl class="features">
+				<div>
+					<dt>Imports as you log</dt>
+					<dd>It checks your diary on a schedule you choose, from hourly to weekly, and adds each new entry as a post dated the day you watched it. Rewatches get a post of their own.</dd>
+				</div>
+				<div>
+					<dt>Follows your changes</dt>
+					<dd>Change a rating, write a review or fix a date on Letterboxd, and the post updates too. Anything you've edited in WordPress stays as you left it.</dd>
+				</div>
+				<div>
+					<dt>Fills in the details</dt>
+					<dd>With a free TMDB key it adds the director, genres, IMDb link and a poster, and keeps retrying in the background if a service is down.</dd>
+				</div>
+				<div>
+					<dt>Brings in your history</dt>
+					<dd>The feed only holds your last 50 entries. Upload your Letterboxd export once to import everything before that, with the right dates and ratings.</dd>
+				</div>
+				<div>
+					<dt>Shows them off</dt>
+					<dd>The Movie Grid block lays out posters as cards or a list, with ratings, director, and links to watch, IMDb and Rotten Tomatoes. It's paged, accessible, and takes on your theme's colours.</dd>
+				</div>
+				<div>
+					<dt>Speaks up when something's wrong</dt>
+					<dd>If imports fail, stop running, or may have missed entries while you were away, a notice on your dashboard says so, and what to do about it.</dd>
+				</div>
+			</dl>
+		</div>
+	</section>
+
+	<section class="part" aria-labelledby="looks-title">
+		<div class="wrap">
+			<h2 id="looks-title">How it looks</h2>
+			<div class="shots">
+				<figure>
+					<img src="shots/movie-grid.jpg" width="1000" height="1220" loading="lazy" alt="The Movie Grid block: poster cards for Wicker, The Cycle and Buddy, each with the date watched, director, star rating, and Watch, IMDb and RT buttons.">
+					<figcaption>The Movie Grid block on davidstagg.com, where it started.</figcaption>
+				</figure>
+				<figure>
+					<img src="shots/settings.jpg" width="1400" height="1199" loading="lazy" alt="The settings page: a status box with the last import, the next check and movies missing details, then fields for the Letterboxd username, TMDB key, schedule, start date and author.">
+					<figcaption>Settings → Letterboxd Connect: what happened on the last import, and a handful of settings.</figcaption>
+				</figure>
+			</div>
+		</div>
+	</section>
+
+	<section class="part" id="setup" aria-labelledby="setup-title">
+		<div class="wrap">
+			<h2 id="setup-title">Set up</h2>
+			<p class="intro">About five minutes, most of it waiting for posters.</p>
+			<ol class="steps">
+				<li><span><a href="https://github.com/dcstagg/letterboxd-connect/releases/latest/download/letterboxd-connect.zip">Download the ZIP</a>, then in WordPress go to <strong>Plugins → Add New Plugin → Upload Plugin</strong>, choose it, and activate.</span></li>
+				<li><span>Open <strong>Settings → Letterboxd Connect</strong> and enter your Letterboxd username.</span></li>
+				<li><span>Optional: add a free <a href="https://www.themoviedb.org/settings/api">TMDB API key</a> for directors, IMDb links and posters.</span></li>
+				<li><span>Press <strong>Import Now</strong>. Your recent diary appears under <strong>Movies</strong>.</span></li>
+				<li><span>Add the <strong>Movie Grid</strong> block to any page.</span></li>
+				<li><span>Optional: on letterboxd.com, go to <strong>Settings → Import &amp; Export → Export your data</strong>, then upload the ZIP on the plugin's settings page to bring in everything older.</span></li>
+			</ol>
+			<div class="requires">
+				<h3>You'll need</h3>
+				<ul>
+					<li>WordPress 6.6 or newer, on PHP 8.4 or newer</li>
+					<li>A public Letterboxd account</li>
+					<li>A TMDB API key, if you want directors, IMDb links and posters (free)</li>
+				</ul>
+			</div>
+		</div>
+	</section>
+
+	<section class="part" id="faq" aria-labelledby="faq-title">
+		<div class="wrap">
+			<h2 id="faq-title">Questions</h2>
+			<div class="faq">
+			<details>
+				<summary>Does it need my Letterboxd password?</summary>
+				<p>No. It reads your public diary feed at <code>letterboxd.com/username/rss/</code>, the same one any feed reader can.</p>
+			</details>
+			<details>
+				<summary>Will it overwrite posts I've edited?</summary>
+				<p>No. It fills in what's missing and follows changes you make on Letterboxd, field by field, but only where the post still says what Letterboxd said before. Your own edits always stay.</p>
+			</details>
+			<details>
+				<summary>What happens if I delete a movie?</summary>
+				<p>It stays deleted; the next import doesn't bring it back. If you change your mind, <strong>Forget Them</strong> on the settings page lets deleted movies be imported again.</p>
+			</details>
+			<details>
+				<summary>I'm using version 1.</summary>
+				<p>Install version 2 over it the same way. The upgrade runs by itself: your settings carry over, your movies and their addresses stay, star ratings 1.x lost come back from the feed, and its off-by-one watch dates are corrected as entries reappear.</p>
+			</details>
+			<details>
+				<summary>How do I update to a new version?</summary>
+				<p>Download the new ZIP and upload it the same way; WordPress offers to replace the installed version. Your movies and settings stay. The <a href="#changelog">changelog</a> says what changed.</p>
+			</details>
+			<details>
+				<summary>Imports seem to have stopped.</summary>
+				<p>WordPress runs scheduled tasks when someone visits a page that isn't cached, so a quiet, cached site can go a long time without one. The plugin warns you on the dashboard when that happens. A cron job on your server that requests <code>wp-cron.php</code> every 15 minutes fixes it for good; most hosts can set one up in their control panel.</p>
+			</details>
+			<details>
+				<summary>Is this made by Letterboxd?</summary>
+				<p>No. Letterboxd Connect is an independent plugin by David Stagg and isn't affiliated with or endorsed by Letterboxd.</p>
+			</details>
+			</div>
+		</div>
+	</section>
+
+	<section class="part" id="changelog" aria-labelledby="changelog-title">
+		<div class="wrap">
+			<h2 id="changelog-title">Changelog</h2>
+			<div class="changelog" data-changelog>
+				<p>The changelog is in <a href="https://github.com/dcstagg/letterboxd-connect/blob/main/CHANGELOG.md">CHANGELOG.md on GitHub</a>.</p>
+			</div>
+		</div>
+	</section>
+</main>
+
+<footer>
+	<div class="wrap">
+		<p>Letterboxd Connect is made by <a href="https://davidstagg.com">David Stagg</a> and is free software under the <a href="https://github.com/dcstagg/letterboxd-connect/blob/main/LICENSE">GPL v3</a>. Found a bug or have an idea? <a href="https://github.com/dcstagg/letterboxd-connect/issues">Open an issue on GitHub</a>.</p>
+		<p>Not affiliated with or endorsed by Letterboxd. Film details and posters come from <a href="https://www.themoviedb.org">TMDB</a>: this product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+	</div>
+</footer>
+
+<script>
+// The changelog comes from changelog.md (copied from CHANGELOG.md on each
+// release), so it's written once. The fallback link above stays if this fails.
+(function () {
+	var box = document.querySelector('[data-changelog]');
+	if (!box || !window.fetch) return;
+	var esc = function (s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+	var inline = function (s) {
+		return esc(s)
+			.replace(/`([^`]+)`/g, '<code>$1</code>')
+			.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+			.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+|[\w.\/#-]+)\)/g, '<a href="$2">$1</a>');
+	};
+	fetch('changelog.md', { cache: 'no-cache' }).then(function (r) {
+		if (!r.ok) throw new Error(r.status);
+		return r.text();
+	}).then(function (md) {
+		var html = '', list = false, first = null;
+		md.split(/\r?\n/).forEach(function (line) {
+			var h = line.match(/^## (\S+)(?:\s+[—-]\s+(.+))?/);
+			if (/^- /.test(line)) {
+				if (!list) { html += '<ul>'; list = true; }
+				html += '<li>' + inline(line.slice(2)) + '</li>';
+				return;
+			}
+			if (list) { html += '</ul>'; list = false; }
+			if (h) {
+				first = first || h[1];
+				html += '<h3 id="v' + esc(h[1]) + '">' + esc(h[1]) + (h[2] ? ' <time>' + esc(h[2]) + '</time>' : '') + '</h3>';
+			} else if (line.trim() && !/^# /.test(line)) {
+				html += '<p>' + inline(line) + '</p>';
+			}
+		});
+		if (list) html += '</ul>';
+		box.innerHTML = html;
+		if (first) document.querySelectorAll('[data-version]').forEach(function (el) { el.textContent = first; });
+	}).catch(function () {});
+})();
+</script>
+</body>
+</html>

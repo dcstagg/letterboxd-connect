@@ -1,0 +1,3 @@
+/* Movie Grid in the block editor: the preview is a block inside the block, so drop the inner margin. */
+.wp-block-letterboxd-connect-movie-grid .wp-block-letterboxd-connect-movie-grid { margin: 0; }
+.wp-block-letterboxd-connect-movie-grid .movie-item h3.movie-title { overflow-wrap: normal; }
