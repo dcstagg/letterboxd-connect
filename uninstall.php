@@ -23,6 +23,8 @@ foreach ( $names as $name ) {
 	delete_option( $name );
 }
 
+delete_site_transient( 'lbc_update_manifest' );
+
 wp_unschedule_hook( 'lbc_import' );
 wp_unschedule_hook( 'lbc_backfill' );
 

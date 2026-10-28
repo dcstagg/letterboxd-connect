@@ -3,9 +3,10 @@
  * Plugin Name: Letterboxd Connect
  * Plugin URI: https://dcstagg.github.io/letterboxd-connect/
  * Description: Imports your Letterboxd diary into a Movies post type, fills in director, IMDb and poster from TMDB, and shows it with a Movie Grid block.
- * Version: 2.0.6
+ * Version: 2.0.7
  * Requires at least: 6.6
  * Requires PHP: 8.4
+ * Tested up to: 7.1
  * Author: David Stagg
  * Author URI: https://davidstagg.com
  * License: GPL v3 or later
@@ -16,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const LBC_VERSION = '2.0.6';
+const LBC_VERSION = '2.0.7';
 const LBC_FILE    = __FILE__;
 
 // WordPress checks "Requires PHP" on activation, but not when the files are
@@ -37,6 +38,7 @@ require __DIR__ . '/includes/import.php';
 require __DIR__ . '/includes/csv.php';
 require __DIR__ . '/includes/backfill.php';
 require __DIR__ . '/includes/block.php';
+require __DIR__ . '/includes/updates.php';
 if ( is_admin() ) {
 	require __DIR__ . '/includes/admin.php';
 }

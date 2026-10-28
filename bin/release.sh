@@ -2,7 +2,8 @@
 # Publish a new version of Letterboxd Connect.
 #
 # The plugin is developed in the davidstagg.com site repo (it deploys there
-# first). This copies it here, builds letterboxd-connect.zip, commits, tags
+# first). This copies it here, builds letterboxd-connect.zip, writes
+# docs/update.json (which installed copies check for updates), commits, tags
 # v<version>, pushes, and creates a GitHub release with the ZIP attached and
 # that version's changelog section as its notes.
 #
@@ -59,6 +60,27 @@ NOTES="$(awk -v v="$VERSION" '
 	found && /^## / { exit }
 	found { print }
 ' CHANGELOG.md | sed -e '/./,$!d')"
+
+# What installed copies read to offer this version on their Plugins screen
+# (includes/updates.php). Published with the website.
+header() { sed -n "s/^ \* $1: *//p" letterboxd.php | head -1 | tr -d '\r'; }
+RELEASED="$(sed -n "s/^## $VERSION — \([0-9-]*\).*/\1/p" CHANGELOG.md | head -1)"
+VERSION="$VERSION" NOTES="$NOTES" RELEASED="$RELEASED" \
+REQUIRES="$(header 'Requires at least')" REQUIRES_PHP="$(header 'Requires PHP')" TESTED="$(header 'Tested up to')" \
+python3 - > docs/update.json <<'PY'
+import json, os
+e = os.environ
+print(json.dumps({
+	"version": e["VERSION"],
+	"package": f"https://github.com/dcstagg/letterboxd-connect/releases/download/v{e['VERSION']}/letterboxd-connect.zip",
+	"requires": e["REQUIRES"],
+	"requires_php": e["REQUIRES_PHP"],
+	"tested": e["TESTED"],
+	"released": e["RELEASED"],
+	"changelog": e["NOTES"],
+}, indent=1, ensure_ascii=False))
+PY
+echo "Wrote docs/update.json."
 
 if [ "$DRY_RUN" = 1 ]; then
 	echo "Dry run: nothing committed or pushed. Release notes would be:"

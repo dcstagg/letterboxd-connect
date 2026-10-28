@@ -30,7 +30,7 @@ A WordPress plugin that brings your [Letterboxd](https://letterboxd.com) diary o
 5. Add the **Movie Grid** block to any page.
 6. Optional: import your Letterboxd export (letterboxd.com → Settings → Import & Export → Export your data) to bring in everything older.
 
-To update, download the new ZIP and upload it the same way; WordPress offers to replace the installed version. Your movies and settings stay.
+New versions show up on the **Plugins** screen with an **update now** link, like any other plugin, and you can turn on automatic updates there. (Versions before 2.0.7 don't check for updates: install 2.0.7 or later by hand once.) Your movies and settings stay.
 
 ## How importing works
 

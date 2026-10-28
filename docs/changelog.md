@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.7 — 2026-10-28
+
+- Updates now appear on the Plugins screen like any other plugin's: **update now** installs them in place, **View version details** shows what changed, and automatic updates can be turned on. Sites on an earlier version need to install this one by hand, once.
+
 ## 2.0.6 — 2026-10-28
 
 - The first public release of 2.0, with a [website](https://dcstagg.github.io/letterboxd-connect/) and this changelog.

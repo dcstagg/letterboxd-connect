@@ -1,0 +1,9 @@
+{
+ "version": "2.0.7",
+ "package": "https://github.com/dcstagg/letterboxd-connect/releases/download/v2.0.7/letterboxd-connect.zip",
+ "requires": "6.6",
+ "requires_php": "8.4",
+ "tested": "7.1",
+ "released": "2026-10-28",
+ "changelog": "- Updates now appear on the Plugins screen like any other plugin's: **update now** installs them in place, **View version details** shows what changed, and automatic updates can be turned on. Sites on an earlier version need to install this one by hand, once."
+}
